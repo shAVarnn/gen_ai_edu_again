@@ -1,0 +1,149 @@
+{% extends 'base.html' %} {% block title %}Geography Helper{% endblock %} {%
+block head_extra %}
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""
+/>
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""
+></script>
+<style>
+  #map {
+    height: 450px; /* Adjust height as needed */
+    width: 100%;
+    margin-top: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f0f0f0; /* Placeholder background */
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container">
+  <h1 class="subject-title">Explore Geography</h1>
+
+  <div class="feature-box">
+    <h2>🗺️ Visualize Geographical Topics</h2>
+    <p>
+      Enter a geographical place, feature, or concept (e.g., "River Nile",
+      "Major deserts of the world", "Volcanoes in Japan") to visualize it on the
+      map and get information.
+    </p>
+
+    <label for="geo-topic-input">Enter Topic:</label>
+    <input
+      type="text"
+      id="geo-topic-input"
+      placeholder="e.g., Mount Everest, Amazon Rainforest..."
+    />
+
+    <button
+      id="generate-map-button"
+      class="action-button"
+      style="margin-top: 10px"
+    >
+      Visualize on Map
+    </button>
+
+    <div id="map-loading" class="loading" style="display: none">
+      Generating map info...
+    </div>
+
+    <div id="map"></div>
+
+    <div
+      id="map-info"
+      class="result-box"
+      style="display: none; margin-top: 15px"
+    ></div>
+
+    <div id="map-error" class="result-box error" style="display: none"></div>
+  </div>
+
+  <div class="feature-box">
+    <h2>📝 Text Summarization</h2>
+    <p>Enter geographical text below to get a concise summary.</p>
+    <textarea
+      id="text-to-summarize"
+      rows="8"
+      placeholder="Paste your geographical text here..."
+    ></textarea>
+    <button id="summarize-button" class="action-button">
+      Generate Summary
+    </button>
+    <div id="summary-loading" class="loading" style="display: none">
+      Generating summary...
+    </div>
+    <div id="summary-result" class="result-box" style="display: none"></div>
+  </div>
+
+  <div class="feature-box">
+    <h2>❓ Check Your Understanding</h2>
+    <p>
+      Enter a geographical topic or paste text, and the AI will generate a short
+      quiz.
+    </p>
+    <textarea
+      id="quiz-source-text"
+      rows="8"
+      placeholder="Enter topic (e.g., 'Tectonic Plates') or paste geographical text..."
+    ></textarea>
+    <button id="generate-quiz-button" class="action-button">
+      Generate Quiz
+    </button>
+    <div id="quiz-loading" class="loading" style="display: none">
+      Generating quiz...
+    </div>
+    <div id="quiz-area" style="display: none">
+      <h3>Quiz</h3>
+      <div id="quiz-questions"></div>
+      <button
+        id="show-answers-button"
+        class="action-button secondary-button"
+        style="display: none"
+      >
+        Show Answers
+      </button>
+      <div id="quiz-answers" style="display: none; margin-top: 15px"></div>
+    </div>
+    <div id="quiz-error" class="result-box error" style="display: none"></div>
+  </div>
+
+  <div class="feature-box">
+    <h2>🧩 Crossword Helper</h2>
+    <p>
+      Enter a topic or paste a paragraph, and the AI will suggest words and
+      clues suitable for a crossword puzzle based on the text.
+    </p>
+    <textarea
+      id="crossword-source-text"
+      rows="8"
+      placeholder="Enter topic or paste text here..."
+    ></textarea>
+    <button id="generate-crossword-button" class="action-button">
+      Generate Word/Clue List
+    </button>
+    <div id="crossword-loading" class="loading" style="display: none">
+      Generating suggestions...
+    </div>
+    <div id="crossword-result" style="margin-top: 20px; display: none">
+      <h3>Suggested Words & Clues:</h3>
+      <p>
+        <small
+          >(Note: This tool provides suggestions. Creating the actual grid
+          requires a separate tool or manual effort.)</small
+        >
+      </p>
+      <div id="crossword-list"></div>
+    </div>
+    <div
+      id="crossword-error"
+      class="result-box error"
+      style="display: none"
+    ></div>
+  </div>
+</div>
+{% endblock %}

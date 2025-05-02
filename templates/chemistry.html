@@ -1,0 +1,109 @@
+{% extends 'base.html' %} {% block title %}Chemistry Helper{% endblock %} {%
+block content %}
+<div class="container">
+  <h1 class="subject-title">Explore Chemistry</h1>
+
+  <div class="feature-box">
+    <h2>📝 Text Summarization</h2>
+    <p>Enter chemistry-related text below to get a concise summary.</p>
+    <textarea
+      id="text-to-summarize"
+      rows="8"
+      placeholder="Paste your chemistry text here..."
+    ></textarea>
+    <button id="summarize-button" class="action-button">
+      Generate Summary
+    </button>
+    <div id="summary-loading" class="loading" style="display: none">
+      Generating summary...
+    </div>
+    <div id="summary-result" class="result-box" style="display: none"></div>
+  </div>
+
+  <div class="feature-box">
+    <h2>🖼️ Visualize a Concept</h2>
+    <p>
+      Enter a chemistry topic (e.g., Bonding, Periodic Table, Joule's Law), and
+      the AI will generate a description to help you visualize it.
+    </p>
+    <textarea
+      id="topic-to-visualize"
+      rows="4"
+      placeholder="e.g., Acid and Bases, Matter..."
+    ></textarea>
+    <button id="visualize-button" class="action-button">
+      Generate Visualization Aid
+    </button>
+    <div id="visualize-loading" class="loading" style="display: none">
+      Generating description...
+    </div>
+    <div id="visualize-result" class="result-box" style="display: none"></div>
+  </div>
+
+  <div class="feature-box">
+    <h2>❓ Check Your Understanding</h2>
+    <p>
+      Enter a chemistry topic or paste text, and the AI will generate a short
+      quiz (X multiple-choice questions).
+    </p>
+    <textarea
+      id="quiz-source-text"
+      rows="8"
+      placeholder="Enter topic (e.g., 'Types of Matter') or paste physics text here..."
+    ></textarea>
+    <button id="generate-quiz-button" class="action-button">
+      Generate Quiz
+    </button>
+    <div id="quiz-loading" class="loading" style="display: none">
+      Generating quiz...
+    </div>
+    <div id="quiz-area" style="display: none">
+      <h3>Quiz</h3>
+      <div id="quiz-questions"></div>
+      <button
+        id="show-answers-button"
+        class="action-button secondary-button"
+        style="display: none"
+      >
+        Show Answers
+      </button>
+      <div id="quiz-answers" style="display: none; margin-top: 15px"></div>
+    </div>
+    <div id="quiz-error" class="result-box error" style="display: none"></div>
+  </div>
+
+  <div class="feature-box">
+    <h2>🧩 Crossword Helper</h2>
+    <p>
+      Enter a topic or paste a paragraph, and the AI will suggest words and
+      clues suitable for a crossword puzzle based on the text.
+    </p>
+    <textarea
+      id="crossword-source-text"
+      rows="8"
+      placeholder="Enter topic or paste text here..."
+    ></textarea>
+    <button id="generate-crossword-button" class="action-button">
+      Generate Word/Clue List
+    </button>
+    <div id="crossword-loading" class="loading" style="display: none">
+      Generating suggestions...
+    </div>
+    <div id="crossword-result" style="margin-top: 20px; display: none">
+      <h3>Suggested Words & Clues:</h3>
+      <p>
+        <small
+          >(Note: This tool provides suggestions. Creating the actual grid
+          requires a separate tool or manual effort.)</small
+        >
+      </p>
+      <div id="crossword-list"></div>
+    </div>
+    <div
+      id="crossword-error"
+      class="result-box error"
+      style="display: none"
+    ></div>
+  </div>
+</div>
+{% endblock %}

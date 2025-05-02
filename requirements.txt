@@ -1,0 +1,8 @@
+Flask>=2.0
+google-generativeai>=0.4.0
+python-dotenv>=1.0.0
+Flask-SQLAlchemy>=3.0
+Flask-Login>=0.6
+Flask-WTF>=1.1        # Handles WTForms also
+email-validator>=2.0 # Required by WTForms for email validation for
+pypdf>=3.0.0

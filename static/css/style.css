@@ -1,0 +1,843 @@
+/* File: static/css/style.css */
+
+/* --- Global Styles & Reset --- */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f7f6;
+  color: #333;
+}
+
+.container {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: #2c3e50;
+  line-height: 1.3;
+}
+
+h1.subject-title {
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 10px;
+  margin-bottom: 30px;
+}
+
+a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
+/* --- Header & Footer --- */
+.main-header {
+  background-color: #34495e;
+  color: white;
+  padding: 15px 0;
+  margin-bottom: 20px;
+}
+
+.main-header h1 {
+  color: white;
+  text-align: center;
+  margin: 0 0 10px 0;
+}
+
+.main-nav {
+  text-align: center;
+}
+
+.main-nav a {
+  color: #ecf0f1;
+  margin: 0 10px;
+  font-weight: bold;
+}
+
+.main-nav a:hover {
+  color: #bdc3c7;
+  text-decoration: none;
+}
+
+.main-footer {
+  text-align: center;
+  margin-top: 40px;
+  padding: 20px 0;
+  background-color: #ecf0f1;
+  color: #7f8c8d;
+  border-top: 1px solid #dcdcdc;
+  font-size: 0.9em;
+}
+
+/* --- Feature Boxes --- */
+.feature-box {
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 25px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.feature-box h2 {
+  margin-top: 0;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+  font-size: 1.6em;
+}
+
+.feature-box p:first-of-type {
+  margin-top: 0;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+/* --- Form Elements --- */
+textarea,
+input[type="text"],
+select {
+  width: 95%; /* Allow padding */
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 1rem;
+  box-sizing: border-box; /* Include padding in width */
+}
+
+textarea {
+  resize: vertical; /* Allow vertical resize */
+  min-height: 100px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #444;
+}
+
+/* --- Buttons --- */
+.action-button {
+  display: inline-block;
+  background-color: #3498db;
+  color: white;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-weight: bold;
+}
+
+.action-button:hover {
+  background-color: #2980b9;
+}
+
+.secondary-button {
+  background-color: #6c757d; /* Grey */
+  border-color: #6c757d;
+  margin-left: 10px;
+}
+
+.secondary-button:hover {
+  background-color: #5a6268;
+  border-color: #545b62;
+}
+
+/* --- Loading & Results --- */
+.loading {
+  color: #555;
+  font-style: italic;
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.result-box {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  white-space: pre-wrap; /* Preserve whitespace and wrap text */
+  font-family: inherit;
+  line-height: 1.7;
+  border-left: 5px solid #ccc; /* Default border */
+}
+
+.result-box.success {
+  border-left-color: #2ecc71; /* Green */
+  background-color: #eafaf1;
+}
+
+.result-box.error {
+  border-left-color: #e74c3c; /* Red */
+  background-color: #fdedec;
+  color: #c0392b; /* Darker red text */
+  font-weight: bold;
+  white-space: normal; /* Allow errors to wrap normally */
+}
+
+/* --- Index Page Styles --- */
+.welcome-box {
+  text-align: center;
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+ul.subject-links {
+  list-style-type: none;
+  padding: 0;
+  margin-top: 20px;
+}
+
+ul.subject-links li {
+  display: inline-block;
+  margin: 10px;
+}
+
+ul.subject-links a {
+  display: block;
+  padding: 12px 25px;
+  background-color: #3498db;
+  color: white;
+  border-radius: 5px;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+ul.subject-links a:hover {
+  background-color: #2980b9;
+  text-decoration: none;
+}
+/* Style for 'Coming Soon' links */
+ul.subject-links li a[href="#"] {
+  background-color: #95a5a6; /* Grey out */
+  cursor: not-allowed;
+}
+
+/* --- Quiz Specific Styles --- */
+#quiz-area {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  background-color: #fdfdfd;
+}
+#quiz-area h3 {
+  margin-top: 0;
+}
+
+.quiz-question-item {
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px dashed #ccc;
+}
+.quiz-question-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.quiz-question-item p strong {
+  font-size: 1.1em;
+  color: #333;
+}
+ul.quiz-options {
+  list-style-type: none;
+  padding-left: 20px;
+  margin-top: 8px;
+}
+ul.quiz-options li {
+  margin-bottom: 6px;
+  color: #444;
+}
+#quiz-answers {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #e7f3fe;
+  border: 1px solid #b3d7ff;
+  border-radius: 4px;
+}
+#quiz-answers h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #0056b3;
+}
+#quiz-answers ul {
+  list-style-type: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+#quiz-answers li {
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* --- History Specific Styles --- */
+#battle-select {
+  max-width: 450px; /* Limit width of dropdown */
+}
+/* Styling for the results list generated by JS in battle flow */
+#flow-result ul,
+#flow-result ol {
+  padding-left: 25px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+#flow-result li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+#flow-result p {
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+/* --- Geography Specific Styles --- */
+#geo-topic-input {
+  max-width: 450px;
+}
+/* Map description area */
+#map-info {
+  margin-top: 15px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+#map-info h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #333;
+}
+/* Leaflet popup style tweaks */
+.leaflet-popup-content-wrapper {
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.leaflet-popup-content {
+  font-family: inherit;
+  line-height: 1.5;
+  font-size: 0.95em;
+}
+.leaflet-popup-content b {
+  color: #333;
+}
+
+/*
+/* --- Crossword Helper Specific Styles --- *
+
+#crossword-result {
+  /* Style the container if needed, or rely on feature-box *
+}
+*/
+
+#crossword-result h3 {
+  margin-top: 0;
+  margin-bottom: 5px;
+}
+#crossword-result p small {
+  display: block;
+  margin-bottom: 15px;
+  font-style: italic;
+  color: #666;
+  font-size: 0.9em;
+}
+
+dl.crossword-suggestions {
+  margin-top: 15px;
+  border-left: 3px solid #f39c12; /* Orange accent */
+  padding-left: 15px;
+}
+
+dl.crossword-suggestions dt {
+  font-weight: bold;
+  color: #333;
+  margin-top: 10px;
+  font-family: "Courier New", Courier, monospace; /* Monospace for word feel */
+  text-transform: uppercase; /* Display words as uppercase */
+}
+dl.crossword-suggestions dt:first-child {
+  margin-top: 0;
+}
+
+dl.crossword-suggestions dd {
+  margin-left: 0; /* Reset browser default */
+  margin-bottom: 10px;
+  padding-left: 10px; /* Indent clue slightly */
+  color: #555;
+  font-size: 0.95em;
+}
+
+#crossword-error {
+  margin-top: 15px;
+  /* Uses .result-box.error styles defined earlier */
+}
+
+/* File: static/css/style.css */
+
+/* ... (keep all existing styles) ... */
+
+/* --- Authentication Form Styles --- */
+.auth-form-container {
+  max-width: 500px; /* Limit width of forms */
+  background-color: #ffffff;
+  padding: 30px 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin-top: 30px;
+}
+
+.auth-form-container h2 {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #333;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+  font-size: 0.95em;
+  color: #555;
+}
+
+.form-control {
+  width: 100%; /* Make inputs fill container */
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box; /* Include padding in width */
+  font-size: 1rem;
+}
+
+.form-control-error {
+  border-color: #e74c3c; /* Red border for errors */
+}
+
+.error-message {
+  color: #e74c3c; /* Red text for errors */
+  font-size: 0.85em;
+  margin-top: 5px;
+}
+.error-message span {
+  display: block;
+} /* Ensure errors on new lines */
+
+.form-check {
+  display: flex; /* Align checkbox and label */
+  align-items: center;
+}
+.form-check-input {
+  width: auto; /* Don't make checkbox full width */
+  margin-right: 8px;
+}
+.form-check-label {
+  margin-bottom: 0; /* Remove bottom margin */
+  font-weight: normal;
+  font-size: 0.95em;
+}
+
+.auth-button {
+  width: 100%; /* Make button full width */
+  padding: 12px;
+  font-size: 1.1em;
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 25px;
+  font-size: 0.95em;
+}
+
+/* Flash Messages Styling (adjust as needed) */
+.alert {
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  text-align: center;
+}
+.alert-success {
+  color: #155724;
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+}
+.alert-danger {
+  color: #721c24;
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+}
+.alert-info {
+  color: #0c5460;
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+}
+
+/* Style for auth links in nav *
+.auth-links {
+  /* Optional: style differently, maybe float right *
+}
+*/
+.auth-links a {
+  font-weight: bold;
+}
+
+/*
+/* --- Summarization Input Method Styles --- *
+.input-method-selector {
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+.input-method-selector label {
+  margin-right: 15px; /* Space between radio buttons *
+font-weight: normal; /* Make radio labels normal weight *
+  cursor: pointer;
+}
+.input-method-selector input[type="radio"] {
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+/* Ensure file input looks consistent *
+#file-to-summarize {
+  /* You might want specific styles if default looks bad *
+  padding: 8px; /* Adjust padding if needed *
+  width: 100%;
+  box-sizing: border-box;
+}
+  */
+
+/* --- Revised Summarization Input Styles --- */
+.summary-controls {
+  margin-top: 15px;
+  display: flex; /* Align items horizontally */
+  align-items: center; /* Vertically align items */
+  flex-wrap: wrap; /* Allow wrapping on small screens */
+  gap: 10px; /* Space between items */
+}
+
+.summary-controls .attach-button {
+  /* Style the attach button (using secondary-button styles is often fine) */
+  padding: 8px 12px; /* Slightly smaller padding */
+  font-size: 0.9em;
+  background-color: #6c757d; /* Ensure secondary style */
+}
+.summary-controls .attach-button:hover {
+  background-color: #5a6268;
+}
+
+.selected-file-info {
+  font-size: 0.9em;
+  color: #555;
+  margin-left: 5px; /* Space from attach button */
+  background-color: #f0f0f0;
+  padding: 5px 8px;
+  border-radius: 3px;
+  display: inline-flex; /* Use flex to align text and clear button */
+  align-items: center;
+  gap: 8px;
+}
+
+.selected-file-info .clear-file-button {
+  background: #aaa;
+  color: white;
+  border: none;
+  border-radius: 50%; /* Make it circular */
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  line-height: 16px; /* Center the 'X' */
+  text-align: center;
+  cursor: pointer;
+  padding: 0;
+  font-weight: bold;
+}
+.selected-file-info .clear-file-button:hover {
+  background: #888;
+}
+
+.summary-controls .main-action {
+  /* Make the main button slightly more prominent if needed */
+  margin-left: auto; /* Push the main button to the right */
+}
+
+/* Make sure the hidden input stays hidden */
+#file-to-summarize-hidden {
+  display: none;
+}
+
+/* Remove old radio button styles if they exist */
+/* .input-method-selector { display: none; } */
+
+/* File: static/css/style.css */
+
+/* ... (keep all existing styles) ... */
+
+/* --- Interactive Quiz Styles --- */
+
+/*
+.quiz-question-item.interactive {
+  /* Add any specific container styles if needed *
+}
+*/
+
+.quiz-options-interactive {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.quiz-option-label {
+  display: block; /* Each option on a new line */
+  margin-bottom: 8px;
+  padding: 8px 10px; /* Add padding for click area */
+  border-radius: 4px;
+  border: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.quiz-option-label:hover {
+  background-color: #f8f8f8;
+  border-color: #ddd;
+}
+
+.quiz-option-label input[type="radio"] {
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+/* Styles for feedback after submission */
+.quiz-feedback {
+  margin-top: 10px;
+  padding: 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.quiz-feedback.correct {
+  background-color: #d4edda; /* Light green */
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.quiz-feedback.incorrect {
+  background-color: #f8d7da; /* Light red */
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.quiz-feedback.unanswered {
+  background-color: #fff3cd; /* Light yellow */
+  color: #856404;
+  border: 1px solid #ffeeba;
+}
+
+/* Optional: Highlight correct/incorrect labels after submit */
+.quiz-option-label.correct-answer-label {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  font-weight: bold;
+}
+.quiz-option-label.incorrect-answer-label {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  /* Maybe add strike-through? */
+  /* text-decoration: line-through; */
+}
+
+/* Score display */
+.quiz-score {
+  margin-top: 30px;
+  padding: 15px;
+  background-color: #e9ecef;
+  border-radius: 5px;
+  text-align: center;
+  border: 1px solid #ced4da;
+}
+.quiz-score h3 {
+  margin: 0;
+  color: #495057;
+}
+
+/* Hide original answers area if using interactive submit */
+/* #quiz-answers { display: none; } */ /* Already handled by JS */
+
+/* File: static/css/style.css */
+
+/* ... (keep existing styles) ... */
+
+/* --- Quiz History Styles --- */
+.history-list {
+  margin-top: 20px;
+}
+
+.history-list table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.history-list th,
+.history-list td {
+  border: 1px solid #ddd;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.history-list th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+  color: #555;
+}
+
+.history-list tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.history-list tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+#writing-answer-file {
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 5px; /* Add some space below label */
+}
+
+/* File: static/css/style.css */
+
+/* ... keep existing styles ... */
+
+/* --- Quiz Options Styles --- */
+.quiz-options-selectors {
+  display: flex; /* Arrange options side-by-side */
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  gap: 20px; /* Space between items */
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.quiz-options-selectors .form-group.inline {
+  display: flex;
+  align-items: center; /* Align label and input vertically */
+  gap: 8px; /* Space between label and input */
+  margin-bottom: 0; /* Remove default bottom margin */
+}
+
+.quiz-options-selectors label {
+  margin-bottom: 0; /* Override default label margin */
+  white-space: nowrap; /* Prevent label text wrapping */
+}
+
+.quiz-options-selectors select,
+.quiz-options-selectors input[type="number"] {
+  padding: 8px 10px; /* Adjust padding */
+  margin-bottom: 0; /* Override default margin */
+  width: auto; /* Don't force full width */
+  min-width: 80px; /* Ensure minimum width */
+  font-size: 0.95em;
+}
+
+.quiz-options-selectors input[type="number"] {
+  max-width: 100px; /* Limit width of number input */
+}
+
+.quiz-options-selectors small {
+  font-size: 0.85em;
+  color: #666;
+  margin-left: 5px;
+}
+
+/* Ensure interactive quiz options look okay */
+.quiz-options-interactive {
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+.quiz-option-label {
+  display: block; /* Each option on a new line */
+  margin-bottom: 8px;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+.quiz-option-label:hover {
+  background-color: #f0f8ff; /* Light blue hover */
+}
+.quiz-option-label input[type="radio"] {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+/* Feedback styling */
+.quiz-feedback {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+.quiz-feedback.correct {
+  background-color: #d4edda;
+  color: #155724;
+  border-left: 4px solid #28a745;
+}
+.quiz-feedback.incorrect {
+  background-color: #f8d7da;
+  color: #721c24;
+  border-left: 4px solid #dc3545;
+}
+.quiz-feedback.unanswered {
+  background-color: #fff3cd;
+  color: #856404;
+  border-left: 4px solid #ffc107;
+}
+/* Highlighting labels after submission */
+.quiz-option-label.correct-answer-label {
+  background-color: #c3e6cb;
+  font-weight: bold;
+}
+.quiz-option-label.incorrect-answer-label {
+  background-color: #f5c6cb;
+  text-decoration: line-through;
+}
+
+.quiz-score {
+  margin-top: 25px;
+  padding: 15px;
+  background-color: #e9ecef;
+  border-radius: 5px;
+  text-align: center;
+}
+.quiz-score h3 {
+  margin: 0 0 5px 0;
+}

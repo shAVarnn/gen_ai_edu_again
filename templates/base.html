@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}AI Education Helper{% endblock %}</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    {% block head_extra %}{% endblock %}
+  </head>
+  <body>
+    <header class="main-header">
+      <div class="container">
+        <h1>Gen AI in Education</h1>
+        <nav class="main-nav">
+          <a href="{{ url_for('index') }}">Home</a> |
+          <a href="{{ url_for('subject_page', subject='physics') }}">Physics</a>
+          |
+          <a href="{{ url_for('subject_page', subject='history') }}">History</a>
+          |
+          <a href="{{ url_for('subject_page', subject='geography') }}"
+            >Geography</a
+          >
+          |
+          <a href="{{ url_for('subject_page', subject='chemistry') }}"
+            >Chemistry</a
+          >
+          |
+          <a href="{{ url_for('subject_page', subject='biology') }}">Biology</a>
+
+          <span class="auth-links">
+            {% if current_user.is_authenticated %} | Welcome, {{
+            current_user.email }} |
+            <a href="{{ url_for('quiz_history') }}">Quiz History</a> |
+            <a href="{{ url_for('logout') }}">Logout</a> {% else %} |
+            <a href="{{ url_for('login') }}">Login</a> |
+            <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+          </span>
+        </nav>
+      </div>
+    </header>
+
+    <main class="main-content">{% block content %} {% endblock %}</main>
+
+    <footer class="main-footer">
+      <div class="container">
+        <p>
+          &copy; {{ current_year if current_year else '2024' }} Major Project
+        </p>
+      </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts_extra %}{% endblock %}
+  </body>
+</html>

@@ -1,0 +1,329 @@
+{% extends 'base.html' %} {% block title %}Physics Helper{% endblock %} {% block
+content %}
+<div class="container" data-subject="{{ subject_name.lower() }}">
+  <h1 class="subject-title">Physics Concepts</h1>
+
+  <div class="feature-box">
+    <h2>📝 Text Summarization</h2>
+    <!-- <p>Enter physics-related text below to get a concise summary.</p>
+    <textarea
+      id="text-to-summarize"
+      rows="8"
+      placeholder="Paste your physics text here..."
+    ></textarea>
+    <button id="summarize-button" class="action-button">
+      Generate Summary
+    </button>
+    <div id="summary-loading" class="loading" style="display: none">
+      Generating summary...
+    </div>
+    <div id="summary-result" class="result-box" style="display: none"></div> -->
+
+    <!-- <p>Generate a concise summary by either pasting text or uploading a document (.txt or .pdf).</p>
+
+        <div class="input-method-selector">
+            <label>
+                <input type="radio" name="summary-input-method" value="text" checked> Paste Text
+            </label>
+            <label style="margin-left: 20px;">
+                <input type="radio" name="summary-input-method" value="file"> Upload File
+            </label>
+        </div>
+
+        <div id="summary-text-input-area">
+            <label for="text-to-summarize" style="margin-top:10px;">Paste your text here:</label>
+            <textarea id="text-to-summarize" rows="8" placeholder="Paste content here..."></textarea>
+        </div>
+
+        <div id="summary-file-input-area" style="display: none;">
+            <label for="file-to-summarize" style="margin-top:10px;">Choose a file (.txt, .pdf):</label>
+            <input type="file" id="file-to-summarize" name="file-to-summarize" accept=".txt,.pdf">
+        </div>
+
+        <button id="summarize-button" class="action-button" style="margin-top: 15px;">Generate Summary</button>
+
+        <div id="summary-loading" class="loading" style="display: none;">Generating summary...</div> <div id="summary-result" class="result-box" style="display: none;"></div>
+        <button class="read-aloud-button" data-target="summary-result" style="display: none;" title="Read summary aloud">🔊 Read</button> -->
+
+    <p>
+      Generate a concise summary by pasting text below OR attaching a document
+      (.txt or .pdf).
+    </p>
+
+    <!-- Text Input Area (Default) -->
+    <div id="summary-text-input-area">
+      <label for="text-to-summarize" style="margin-top: 10px"
+        >Paste your text here:</label
+      >
+      <textarea
+        id="text-to-summarize"
+        rows="8"
+        placeholder="Paste content here..."
+      ></textarea>
+    </div>
+
+    <!-- Hidden File Input (Triggered by Button) -->
+    <input
+      type="file"
+      id="file-to-summarize-hidden"
+      accept=".txt,.pdf"
+      style="display: none"
+    />
+
+    <!-- Controls Area -->
+    <div class="summary-controls">
+      <button
+        id="upload-summary-button"
+        class="action-button secondary-button attach-button"
+        title="Attach .txt or .pdf file"
+      >
+        📎 Attach File
+      </button>
+      <span id="selected-summary-file" class="selected-file-info"></span>
+      <!-- Area to show selected file name -->
+      <button id="summarize-button" class="action-button main-action">
+        Generate Summary
+      </button>
+      <!-- Main Button -->
+    </div>
+
+    <div id="summary-loading" class="loading" style="display: none">
+      Generating summary...
+    </div>
+    <div id="summary-result" class="result-box" style="display: none"></div>
+    <button
+      class="read-aloud-button"
+      data-target="summary-result"
+      style="display: none"
+      title="Read summary aloud"
+    >
+      🔊 Read
+    </button>
+  </div>
+
+  <div class="feature-box">
+    <h2>🖼️ Visualize a Concept</h2>
+    <p>
+      Enter a physics topic (e.g., Gravity, Momentum, Ohm's Law), and the AI
+      will generate a description to help you visualize it.
+    </p>
+    <textarea
+      id="topic-to-visualize"
+      rows="4"
+      placeholder="e.g., Newton's Laws, Wave-particle duality..."
+    ></textarea>
+    <button id="visualize-button" class="action-button">
+      Generate Visualization Aid
+    </button>
+    <div id="visualize-loading" class="loading" style="display: none">
+      Generating description...
+    </div>
+    <div id="visualize-result" class="result-box" style="display: none"></div>
+  </div>
+
+  <!-- <div class="feature-box">
+    <h2>❓ Check Your Understanding</h2>
+    <p>
+      Enter a physics topic or paste text, and the AI will generate a short quiz
+      (3 multiple-choice questions).
+    </p>
+    <textarea
+      id="quiz-source-text"
+      rows="8"
+      placeholder="Enter topic (e.g., 'Kinetic Energy') or paste physics text here..."
+    ></textarea>
+    <button id="generate-quiz-button" class="action-button">
+      Generate Quiz
+    </button>
+    <div id="quiz-loading" class="loading" style="display: none">
+      Generating quiz...
+    </div>
+    <div id="quiz-area" style="display: none">
+      <h3>Quiz</h3>
+      <div id="quiz-questions"></div>
+      <button
+        id="show-answers-button"
+        class="action-button secondary-button"
+        style="display: none"
+      >
+        Show Answers
+      </button>
+      <div id="quiz-answers" style="display: none; margin-top: 15px"></div>
+    </div>
+    <div id="quiz-error" class="result-box error" style="display: none"></div>
+  </div> -->
+
+  <div class="feature-box">
+    <h2>❓ Check Your Understanding</h2>
+    <p>
+      Enter a topic or paste text, select difficulty and number of questions,
+      and the AI will generate a quiz.
+    </p>
+
+    <div class="form-group">
+      <label for="quiz-source-text">Topic or Text:</label>
+      <textarea
+        id="quiz-source-text"
+        rows="6"
+        placeholder="Enter topic (e.g., 'Newton's First Law') or paste text here..."
+      ></textarea>
+    </div>
+
+    <div class="quiz-options-selectors">
+      <div class="form-group inline">
+        <label for="quiz-difficulty">Difficulty:</label>
+        <select id="quiz-difficulty" name="quiz-difficulty">
+          <option value="easy" selected>Easy (Secondary School)</option>
+          <option value="medium">Medium (Intro University)</option>
+          <option value="hard">Hard (Advanced University)</option>
+        </select>
+      </div>
+      <div class="form-group inline">
+        <label for="quiz-question-count">Number of Questions:</label>
+        <input
+          type="number"
+          id="quiz-question-count"
+          name="quiz-question-count"
+          min="3"
+          max="20"
+          value="5"
+        />
+        <small>(3-20 recommended)</small>
+      </div>
+    </div>
+
+    <button id="generate-quiz-button" class="action-button">
+      Generate Quiz
+    </button>
+    <div id="quiz-loading" class="loading" style="display: none">
+      Generating quiz...
+    </div>
+    <div id="quiz-area" style="display: none">
+      <h3>Quiz</h3>
+      <div id="quiz-questions"></div>
+    </div>
+    <button
+      id="show-answers-button"
+      class="action-button secondary-button"
+      style="display: none; margin-top: 10px"
+    >
+      Show Answers (Static)
+    </button>
+    <div id="quiz-answers" style="display: none; margin-top: 15px"></div>
+    <div id="quiz-error" class="result-box error" style="display: none"></div>
+  </div>
+
+  <div class="feature-box">
+    <h2>🧩 Crossword Helper</h2>
+    <p>
+      Enter a topic or paste a paragraph, and the AI will suggest words and
+      clues suitable for a crossword puzzle based on the text.
+    </p>
+    <textarea
+      id="crossword-source-text"
+      rows="8"
+      placeholder="Enter topic or paste text here..."
+    ></textarea>
+    <button id="generate-crossword-button" class="action-button">
+      Generate Word/Clue List
+    </button>
+    <div id="crossword-loading" class="loading" style="display: none">
+      Generating suggestions...
+    </div>
+    <div id="crossword-result" style="margin-top: 20px; display: none">
+      <h3>Suggested Words & Clues:</h3>
+      <p>
+        <small
+          >(Note: This tool provides suggestions. Creating the actual grid
+          requires a separate tool or manual effort.)</small
+        >
+      </p>
+      <div id="crossword-list"></div>
+    </div>
+    <div
+      id="crossword-error"
+      class="result-box error"
+      style="display: none"
+    ></div>
+  </div>
+  <div class="feature-box">
+    <h2>✍️ Answer Writing Practice</h2>
+    <p>
+      Get AI feedback on your written answer. Enter the question/topic, then
+      either type your answer or upload a file (.txt or .pdf).
+    </p>
+
+    <div class="form-group">
+      <label for="writing-topic">Question or Topic:</label>
+      <input
+        type="text"
+        id="writing-topic"
+        class="form-control"
+        placeholder="e.g., Explain Newton's Second Law, Describe the causes of WWI..."
+      />
+    </div>
+
+    <div class="input-method-selector">
+      <label>
+        <input type="radio" name="writing-input-method" value="text" checked />
+        Type Answer
+      </label>
+      <label style="margin-left: 20px">
+        <input type="radio" name="writing-input-method" value="file" /> Upload
+        Answer File
+      </label>
+    </div>
+
+    <div id="writing-answer-text-area">
+      <label for="writing-answer" style="margin-top: 10px">Your Answer:</label>
+      <textarea
+        id="writing-answer"
+        rows="10"
+        placeholder="Write your detailed answer here..."
+      ></textarea>
+    </div>
+
+    <div id="writing-answer-file-area" style="display: none">
+      <label for="writing-answer-file" style="margin-top: 10px"
+        >Choose answer file (.txt, .pdf):</label
+      >
+      <input
+        type="file"
+        id="writing-answer-file"
+        name="writing-answer-file"
+        accept=".txt,.pdf"
+      />
+    </div>
+
+    <button
+      id="get-writing-feedback-button"
+      class="action-button"
+      style="margin-top: 15px"
+    >
+      Get Feedback
+    </button>
+
+    <div id="writing-feedback-loading" class="loading" style="display: none">
+      Analyzing and generating feedback...
+    </div>
+    <div
+      id="writing-feedback-result"
+      class="result-box"
+      style="display: none"
+    ></div>
+    <button
+      class="read-aloud-button"
+      data-target="writing-feedback-result"
+      style="display: none"
+      title="Read feedback aloud"
+    >
+      🔊 Read
+    </button>
+    <div
+      id="writing-feedback-error"
+      class="result-box error"
+      style="display: none"
+    ></div>
+  </div>
+</div>
+{% endblock %}

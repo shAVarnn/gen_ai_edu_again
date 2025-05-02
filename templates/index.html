@@ -1,0 +1,20 @@
+{% extends 'base.html' %} {% block title %}Welcome - AI Education Helper{%
+endblock %} {% block content %}
+<div class="container">
+  <div class="welcome-box">
+    <h2>Welcome to the AI Education Helper!</h2>
+    <p>Choose a subject below to explore AI-powered learning tools.</p>
+    <ul class="subject-links">
+      {% if subjects %} {% for subject in subjects %}
+      <li>
+        <a href="{{ url_for('subject_page', subject=subject) }}"
+          >{{ subject.capitalize() }}</a
+        >
+      </li>
+      {% endfor %} {% else %}
+      <li>No subjects available.</li>
+      {% endif %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

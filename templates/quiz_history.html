@@ -1,0 +1,34 @@
+{% extends "base.html" %} {% block title %}Quiz History{% endblock %} {% block
+content %}
+<div class="container">
+  <h1 class="subject-title">My Quiz History</h1>
+
+  {% if attempts %}
+  <div class="history-list">
+    <p>Here are your recent quiz attempts:</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Date & Time</th>
+          <th>Subject</th>
+          <th>Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for attempt in attempts %}
+        <tr>
+          <td>{{ attempt.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ attempt.subject.capitalize() }}</td>
+          <td>{{ attempt.score }} / {{ attempt.total_questions }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    You haven't completed any quizzes yet. Go try some!
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
