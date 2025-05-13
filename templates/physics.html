@@ -325,5 +325,41 @@ content %}
       style="display: none"
     ></div>
   </div>
+
+  <div class="feature-box">
+    <h2>📇 Flashcard Generator</h2>
+    <p>
+      Enter a topic or paste a paragraph of text, and the AI will generate key
+      terms and definitions for flashcards.
+    </p>
+
+    <div class="form-group">
+      <label for="flashcard-source-text">Topic or Text for Flashcards:</label>
+      <textarea
+        id="flashcard-source-text"
+        rows="6"
+        placeholder="e.g., 'Key concepts of Photosynthesis', or paste text here..."
+      ></textarea>
+    </div>
+
+    <button id="generate-flashcards-button" class="action-button">
+      Generate Flashcards
+    </button>
+
+    <div id="flashcards-loading" class="loading" style="display: none">
+      Generating flashcards...
+    </div>
+
+    <div id="flashcards-result-area" style="margin-top: 20px; display: none">
+      <h3>Generated Flashcards (Term & Definition):</h3>
+      <div id="flashcards-list"></div>
+    </div>
+
+    <div
+      id="flashcards-error"
+      class="result-box error"
+      style="display: none"
+    ></div>
+  </div>
 </div>
 {% endblock %}

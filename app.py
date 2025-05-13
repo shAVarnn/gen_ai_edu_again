@@ -1538,6 +1538,345 @@ def get_writing_feedback():
         return jsonify({"error": f"An internal error occurred during feedback generation.{block_reason_msg} Details: {str(e)}"}), 500
 # === END REVISED /get-writing-feedback route ===
 
+# === NEW ROUTE for Chemical Equation Balancer ===
+@app.route('/balance-chemical-equation', methods=['POST'])
+@login_required # Ensure user is logged in
+def balance_chemical_equation():
+    """Balances a chemical equation and provides an explanation."""
+    logging.info(f"Received request for /balance-chemical-equation from user: {current_user.email}")
+    if not request.is_json:
+        logging.error("Request is not JSON for equation balancer")
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    unbalanced_equation = data.get('equation')
+
+    if not unbalanced_equation or not isinstance(unbalanced_equation, str) or not unbalanced_equation.strip():
+        logging.error("Missing or invalid 'equation'")
+        return jsonify({"error": "Please provide the unbalanced chemical equation."}), 400
+
+    try:
+        logging.info(f"Balancing chemical equation: {unbalanced_equation}")
+
+        # Prompt for balancing and explanation, requesting JSON output
+        prompt = f"""
+        You are an expert chemistry assistant.
+        Given the unbalanced chemical equation: "{unbalanced_equation}"
+
+        1.  Balance this chemical equation.
+        2.  Provide a step-by-step explanation of how you balanced it, or explain the principle of conservation of atoms/mass applied. If the equation is already balanced, state that and briefly explain why.
+        3.  If the equation is invalid or cannot be balanced (e.g., nonsensical reactants/products), explain why.
+
+        Return the output ONLY as a single valid JSON object with the following exact keys:
+        - "balanced_equation": A string representing the balanced chemical equation. If the input was invalid or already balanced, this might reflect the input or state "Already balanced" or "Invalid equation".
+        - "explanation": A string containing the detailed explanation.
+        - "is_balanced_successfully": A boolean (true if successfully balanced a previously unbalanced equation, false if input was already balanced, invalid, or balancing failed).
+
+        Example for "H2 + O2 -> H2O":
+        {{
+          "balanced_equation": "2H2 + O2 -> 2H2O",
+          "explanation": "To balance the equation, we need an equal number of each type of atom on both sides. \n1. Oxygen: There are 2 oxygen atoms on the left (O2) and 1 on the right (H2O). Place a coefficient of 2 in front of H2O: H2 + O2 -> 2H2O. Now oxygens are balanced (2 on each side).\n2. Hydrogen: Now there are 2 hydrogen atoms on the left (H2) and 4 on the right (2H2O). Place a coefficient of 2 in front of H2: 2H2 + O2 -> 2H2O. Now hydrogens are balanced (4 on each side).\nThe equation is now balanced.",
+          "is_balanced_successfully": true
+        }}
+
+        Example for "NaCl -> Na + Cl2" (already balanced if coefficients are 2, 2, 1):
+        {{
+          "balanced_equation": "2NaCl -> 2Na + Cl2",
+          "explanation": "This equation involves the decomposition of sodium chloride. To balance it...\n1. Chlorine: 2 Cl on right, 1 on left. Add coefficient 2 to NaCl: 2NaCl -> Na + Cl2.\n2. Sodium: 2 Na on left, 1 on right. Add coefficient 2 to Na: 2NaCl -> 2Na + Cl2.\nNow all atoms are balanced.",
+          "is_balanced_successfully": true
+        }}
+
+        Example for "H2O -> H2O" (already balanced):
+        {{
+          "balanced_equation": "H2O -> H2O",
+          "explanation": "The provided equation is already balanced as the number of hydrogen and oxygen atoms are equal on both the reactant and product sides.",
+          "is_balanced_successfully": false
+        }}
+
+        Now, process the equation: "{unbalanced_equation}"
+        """
+
+        generation_config = genai.types.GenerationConfig(
+            response_mime_type="application/json"
+        )
+        response = model.generate_content(prompt, generation_config=generation_config)
+        logging.info("Response received from Gemini for equation balancing.")
+
+        equation_data_json_string = ""
+        if response.parts: equation_data_json_string = response.parts[0].text
+        elif hasattr(response, 'text'): equation_data_json_string = response.text
+
+        if not equation_data_json_string.strip():
+             if response.prompt_feedback and response.prompt_feedback.block_reason:
+                 block_reason = response.prompt_feedback.block_reason
+                 logging.warning(f"Equation balancing blocked: {block_reason}")
+                 return jsonify({"error": f"Content blocked: {block_reason}. Try a different equation."}), 400
+             else:
+                 logging.warning("Received empty response string for equation JSON.")
+                 return jsonify({"error": "AI returned an empty response for the equation."}), 500
+
+        # Validate and parse the JSON
+        try:
+            equation_data = json.loads(equation_data_json_string)
+
+            required_keys = ["balanced_equation", "explanation", "is_balanced_successfully"]
+            if not isinstance(equation_data, dict) or not all(k in equation_data for k in required_keys):
+                missing = [k for k in required_keys if k not in equation_data]
+                raise ValueError(f"Generated JSON missing required key(s): {', '.join(missing)}.")
+            if not isinstance(equation_data.get("balanced_equation"), str):
+                raise ValueError("Balanced equation must be a string.")
+            if not isinstance(equation_data.get("explanation"), str):
+                raise ValueError("Explanation must be a string.")
+            if not isinstance(equation_data.get("is_balanced_successfully"), bool):
+                raise ValueError("is_balanced_successfully must be a boolean.")
+
+            logging.info("Equation data JSON parsed and validated successfully.")
+            return jsonify(equation_data) # Return the whole parsed object
+
+        except json.JSONDecodeError as json_e:
+            logging.error(f"Failed to parse equation JSON response: {json_e}\nReceived: {equation_data_json_string}")
+            return jsonify({"error": "AI response was not valid JSON for the equation."}), 500
+        except ValueError as val_e:
+             logging.error(f"Generated equation JSON validation failed: {val_e}\nReceived: {equation_data_json_string}")
+             return jsonify({"error": f"Generated equation data structure was invalid: {val_e}"}), 500
+
+    except Exception as e:
+        logging.exception(f"Error during equation balancing API call for user {current_user.email}: {e}")
+        block_reason_msg = ""
+        # ... (Standard block reason checking logic) ...
+        try:
+            if response and response.prompt_feedback and response.prompt_feedback.block_reason:
+                 block_reason = response.prompt_feedback.block_reason
+                 logging.warning(f"Equation balancing potentially blocked: {block_reason}")
+                 block_reason_msg = f" Content may be blocked ({block_reason})."
+        except NameError: pass # response not defined
+        except AttributeError: pass # response has no prompt_feedback
+        return jsonify({"error": f"An internal error occurred during equation processing.{block_reason_msg} Details: {str(e)}"}), 500
+# === END NEW ROUTE ===      
+
+
+# === NEW ROUTE for Biological Process Explainer ===
+@app.route('/explain-biological-process', methods=['POST'])
+@login_required # Ensure user is logged in
+def explain_biological_process():
+    """Explains a biological process: overview, stages, I/O, significance."""
+    logging.info(f"Received request for /explain-biological-process from user: {current_user.email}")
+    if not request.is_json:
+        logging.error("Request is not JSON for biological process explainer")
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    process_name = data.get('process_name')
+
+    if not process_name or not isinstance(process_name, str) or not process_name.strip():
+        logging.error("Missing or invalid 'process_name'")
+        return jsonify({"error": "Please provide the name of the biological process."}), 400
+
+    try:
+        logging.info(f"Generating explanation for biological process: {process_name}")
+
+        # Prompt for structured JSON output
+        prompt = f"""
+        You are an expert biology educator.
+        For the biological process "{process_name}", provide a detailed explanation suitable for a secondary school or early university student.
+
+        Return the output ONLY as a single valid JSON object with the following exact keys:
+        - "process_name_explained": A string confirming the process name, perhaps slightly rephrased or with common synonyms if appropriate (e.g., "{process_name} (also known as...)").
+        - "overview": A concise overview (2-4 sentences) of what the process is and its general purpose.
+        - "key_stages": A list of strings, where each string describes a key stage or step in the process. If the process is very simple, this might be a short list or a single descriptive item. Aim for 3-7 key stages if applicable.
+        - "inputs_outputs": A string briefly listing the main reactants/inputs and products/outputs of the process (e.g., "Inputs: Glucose, Oxygen; Outputs: ATP, Carbon Dioxide, Water").
+        - "significance": A brief explanation (2-3 sentences) of the importance or significance of this process for living organisms or ecosystems.
+
+        Ensure the language is clear, accurate, and easy to understand.
+
+        Example for "Photosynthesis":
+        {{
+          "process_name_explained": "Photosynthesis",
+          "overview": "Photosynthesis is the process used by plants, algae, and some bacteria to convert light energy into chemical energy, through a process that converts carbon dioxide and water into sugars (glucose) and oxygen.",
+          "key_stages": [
+            "Light-dependent reactions: Light energy is absorbed by chlorophyll and converted into chemical energy (ATP and NADPH). Water is split, releasing oxygen.",
+            "Light-independent reactions (Calvin Cycle): ATP and NADPH from the light reactions are used to convert carbon dioxide into glucose (sugar)."
+          ],
+          "inputs_outputs": "Inputs: Carbon Dioxide, Water, Light Energy; Outputs: Glucose, Oxygen",
+          "significance": "Photosynthesis is vital as it produces food for plants (the base of most food chains) and releases oxygen into the atmosphere, which most organisms need for respiration."
+        }}
+
+        Now, generate the JSON explanation for: "{process_name}"
+        """
+
+        generation_config = genai.types.GenerationConfig(
+            response_mime_type="application/json"
+        )
+        response = model.generate_content(prompt, generation_config=generation_config)
+        logging.info("Response received from Gemini for biological process explanation.")
+
+        process_data_json_string = ""
+        if response.parts: process_data_json_string = response.parts[0].text
+        elif hasattr(response, 'text'): process_data_json_string = response.text
+
+        if not process_data_json_string.strip():
+             if response.prompt_feedback and response.prompt_feedback.block_reason:
+                 block_reason = response.prompt_feedback.block_reason
+                 logging.warning(f"Bio process explanation blocked: {block_reason}")
+                 return jsonify({"error": f"Content blocked: {block_reason}. Try a different process."}), 400
+             else:
+                 logging.warning("Received empty response string for bio process JSON.")
+                 return jsonify({"error": "AI returned an empty response for the process explanation."}), 500
+
+        # Validate and parse the JSON
+        try:
+            process_data = json.loads(process_data_json_string)
+
+            required_keys = ["process_name_explained", "overview", "key_stages", "inputs_outputs", "significance"]
+            if not isinstance(process_data, dict) or not all(k in process_data for k in required_keys):
+                missing = [k for k in required_keys if k not in process_data]
+                raise ValueError(f"Generated JSON missing required key(s): {', '.join(missing)}.")
+
+            # Further type checks
+            if not isinstance(process_data.get("process_name_explained"), str): raise ValueError("'process_name_explained' must be a string.")
+            if not isinstance(process_data.get("overview"), str): raise ValueError("'overview' must be a string.")
+            if not isinstance(process_data.get("key_stages"), list) or not all(isinstance(s, str) for s in process_data.get("key_stages",[])):
+                raise ValueError("'key_stages' must be a list of strings.")
+            if not isinstance(process_data.get("inputs_outputs"), str): raise ValueError("'inputs_outputs' must be a string.")
+            if not isinstance(process_data.get("significance"), str): raise ValueError("'significance' must be a string.")
+
+
+            logging.info("Biological process JSON parsed and validated successfully.")
+            return jsonify(process_data) # Return the whole parsed object
+
+        except json.JSONDecodeError as json_e:
+            logging.error(f"Failed to parse bio process JSON response: {json_e}\nReceived: {process_data_json_string}")
+            return jsonify({"error": "AI response was not valid JSON for the process explanation."}), 500
+        except ValueError as val_e:
+             logging.error(f"Generated bio process JSON validation failed: {val_e}\nReceived: {process_data_json_string}")
+             return jsonify({"error": f"Generated process data structure was invalid: {val_e}"}), 500
+
+    except Exception as e:
+        logging.exception(f"Error during bio process explanation API call for user {current_user.email}: {e}")
+        block_reason_msg = ""
+        # ... (Standard block reason checking logic) ...
+        try:
+            if response and response.prompt_feedback and response.prompt_feedback.block_reason:
+                 block_reason = response.prompt_feedback.block_reason
+                 logging.warning(f"Bio process explanation potentially blocked: {block_reason}")
+                 block_reason_msg = f" Content may be blocked ({block_reason})."
+        except NameError: pass
+        except AttributeError: pass
+        return jsonify({"error": f"An internal error occurred during process explanation.{block_reason_msg} Details: {str(e)}"}), 500
+# === END NEW ROUTE ===
+
+# === NEW ROUTE for Flashcard Generation ===
+@app.route('/generate-flashcards', methods=['POST'])
+@login_required # Ensure user is logged in
+def generate_flashcards():
+    """Generates flashcard data (term-definition pairs) from text/topic."""
+    logging.info(f"Received request for /generate-flashcards from user: {current_user.email}")
+    if not request.is_json:
+        logging.error("Request is not JSON for flashcard generation")
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    source_text = data.get('source_text')
+
+    if not source_text or not isinstance(source_text, str) or not source_text.strip():
+        logging.error("Missing or invalid 'source_text' for flashcards")
+        return jsonify({"error": "Please provide a topic or text to generate flashcards from."}), 400
+
+    try:
+        logging.info(f"Generating flashcards for: {source_text[:70]}...") # Log truncated input
+
+        # Prompt for generating flashcard data as JSON
+        prompt = f"""
+        Based on the following text or topic, identify 5 to 10 key terms, concepts, or important facts.
+        For each identified item, provide a concise definition, explanation, or associated key information suitable for a flashcard.
+        The "term" should be relatively short. The "definition" should be clear and informative.
+
+        Return the output ONLY as a single valid JSON list (array) of objects. Each object must have these exact keys:
+        - "term": A string representing the key term or concept (e.g., "Mitochondria", "Treaty of Versailles").
+        - "definition": A string containing the concise definition or explanation for that term.
+
+        Do not include any explanatory text, markdown, or anything else before or after the JSON list.
+
+        Source Text/Topic:
+        ---
+        {source_text}
+        ---
+
+        JSON Output Example:
+        [
+          {{"term": "Photosynthesis", "definition": "The process by which green plants and some other organisms use sunlight to synthesize foods with the help of chlorophyll pigment."}},
+          {{"term": "Chlorophyll", "definition": "A green pigment, present in all green plants and in cyanobacteria, responsible for the absorption of light to provide energy for photosynthesis."}},
+          {{"term": "Stomata", "definition": "Tiny pores in the epidermis of a leaf or stem of a plant, forming a slit of variable width, which allows movement of gases in and out of the intercellular spaces."}}
+        ]
+
+        Now, generate the JSON list of flashcard data:
+        """
+
+        generation_config = genai.types.GenerationConfig(
+            response_mime_type="application/json"
+        )
+        response = model.generate_content(prompt, generation_config=generation_config)
+        logging.info("Response received from Gemini for flashcard data.")
+
+        flashcard_json_string = ""
+        if response.parts: flashcard_json_string = response.parts[0].text
+        elif hasattr(response, 'text'): flashcard_json_string = response.text
+
+        if not flashcard_json_string.strip():
+             if response.prompt_feedback and response.prompt_feedback.block_reason:
+                 block_reason = response.prompt_feedback.block_reason
+                 logging.warning(f"Flashcard generation blocked: {block_reason}")
+                 return jsonify({"error": f"Content blocked: {block_reason}. Try different text."}), 400
+             else:
+                 logging.warning("Received empty response string for flashcard JSON.")
+                 return jsonify({"error": "AI returned an empty response for flashcards."}), 500
+
+        # Validate and parse the JSON
+        try:
+            flashcard_data = json.loads(flashcard_json_string)
+
+            required_keys = ["term", "definition"]
+            if not isinstance(flashcard_data, list):
+                raise ValueError("Generated JSON response is not a list.")
+            # Allow empty list if AI genuinely finds no terms
+            # if not flashcard_data:
+            #     raise ValueError("Generated JSON list of flashcards is empty.")
+
+            for i, card in enumerate(flashcard_data):
+                item_num = i + 1
+                if not isinstance(card, dict):
+                    raise ValueError(f"Flashcard item {item_num} in JSON list is not an object.")
+                if not all(key in card for key in required_keys):
+                    missing = [key for key in required_keys if key not in card]
+                    raise ValueError(f"Flashcard item {item_num} is missing required key(s): {', '.join(missing)}.")
+                if not isinstance(card.get("term"), str) or not card.get("term","").strip():
+                     raise ValueError(f"Flashcard item {item_num} has invalid or empty 'term'.")
+                if not isinstance(card.get("definition"), str) or not card.get("definition","").strip():
+                     raise ValueError(f"Flashcard item {item_num} has invalid or empty 'definition'.")
+
+            logging.info(f"Flashcard data JSON ({len(flashcard_data)} cards) parsed and validated successfully.")
+            return jsonify({"flashcards": flashcard_data}) # Return the list
+
+        except json.JSONDecodeError as json_e:
+            logging.error(f"Failed to parse flashcard JSON response: {json_e}\nReceived: {flashcard_json_string}")
+            return jsonify({"error": "AI response was not valid JSON for flashcards."}), 500
+        except ValueError as val_e:
+             logging.error(f"Generated flashcard JSON validation failed: {val_e}\nReceived: {flashcard_json_string}")
+             return jsonify({"error": f"Generated flashcard data structure was invalid: {val_e}"}), 500
+
+    except Exception as e:
+        logging.exception(f"Error during flashcard generation API call for user {current_user.email}: {e}")
+        block_reason_msg = ""
+        # ... (Standard block reason checking logic) ...
+        try:
+            if response and response.prompt_feedback and response.prompt_feedback.block_reason:
+                 block_reason = response.prompt_feedback.block_reason
+                 logging.warning(f"Flashcard generation potentially blocked: {block_reason}")
+                 block_reason_msg = f" Content may be blocked ({block_reason})."
+        except NameError: pass
+        except AttributeError: pass
+        return jsonify({"error": f"An internal error occurred during flashcard generation.{block_reason_msg} Details: {str(e)}"}), 500
+# === END NEW ROUTE ===
 
 # Add before if __name__ == '__main__': block in app.py
 

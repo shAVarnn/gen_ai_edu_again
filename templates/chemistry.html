@@ -105,5 +105,62 @@ block content %}
       style="display: none"
     ></div>
   </div>
+
+  <div class="feature-box">
+    <h2>🧪 Chemical Equation Balancer & Explainer</h2>
+    <p>
+      Enter an unbalanced chemical equation (e.g., H2 + O2 -> H2O), and the AI
+      will balance it and explain the process or principles.
+    </p>
+
+    <div class="form-group">
+      <label for="unbalanced-equation">Unbalanced Equation:</label>
+      <input
+        type="text"
+        id="unbalanced-equation"
+        class="form-control"
+        placeholder="e.g., Na + Cl2 -> NaCl"
+      />
+    </div>
+
+    <button id="balance-equation-button" class="action-button">
+      Balance & Explain Equation
+    </button>
+
+    <div id="equation-loading" class="loading" style="display: none">
+      Balancing equation and generating explanation...
+    </div>
+
+    <div
+      id="balanced-equation-result-area"
+      style="display: none; margin-top: 20px"
+    >
+      <h3>Balanced Equation:</h3>
+      <p id="balanced-equation-text" class="result-box code-like"></p>
+      {# code-like class for styling #}
+    </div>
+
+    <div
+      id="equation-explanation-result-area"
+      style="display: none; margin-top: 10px"
+    >
+      <h3>Explanation:</h3>
+      <div id="equation-explanation-text" class="result-box"></div>
+      <button
+        class="read-aloud-button"
+        data-target="equation-explanation-text"
+        style="display: none"
+        title="Read explanation aloud"
+      >
+        🔊 Read
+      </button>
+    </div>
+
+    <div
+      id="equation-error"
+      class="result-box error"
+      style="display: none"
+    ></div>
+  </div>
 </div>
 {% endblock %}

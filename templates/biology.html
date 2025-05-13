@@ -105,5 +105,59 @@ content %}
       style="display: none"
     ></div>
   </div>
+
+  <div class="feature-box">
+    <h2>🧬 Biological Process Explainer</h2>
+    <p>
+      Enter a biological process (e.g., Photosynthesis, Mitosis, Protein
+      Synthesis), and the AI will break it down for you.
+    </p>
+
+    <div class="form-group">
+      <label for="biological-process">Biological Process Name:</label>
+      <input
+        type="text"
+        id="biological-process"
+        class="form-control"
+        placeholder="e.g., Cellular Respiration, Meiosis..."
+      />
+    </div>
+
+    <button id="explain-process-button" class="action-button">
+      Explain Process
+    </button>
+
+    <div id="process-loading" class="loading" style="display: none">
+      Analyzing process and generating explanation...
+    </div>
+
+    <div
+      id="process-explanation-result"
+      style="margin-top: 20px; display: none"
+    >
+      <h3 id="process-name-heading"></h3>
+      <div id="process-overview" class="result-box sub-section"></div>
+      <h4>Key Stages/Steps:</h4>
+      <div id="process-stages" class="result-box sub-section"></div>
+      <h4>Reactants/Inputs & Products/Outputs:</h4>
+      <div id="process-io" class="result-box sub-section"></div>
+      <h4>Significance/Importance:</h4>
+      <div id="process-significance" class="result-box sub-section"></div>
+    </div>
+    <button
+      class="read-aloud-button"
+      data-target="process-explanation-result"
+      style="display: none"
+      title="Read explanation aloud"
+    >
+      🔊 Read Full Explanation
+    </button>
+
+    <div
+      id="process-error"
+      class="result-box error"
+      style="display: none"
+    ></div>
+  </div>
 </div>
 {% endblock %}

@@ -2507,5 +2507,515 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // === END NEW SECTION ===
 
+  // === NEW SECTION: Chemical Equation Balancer Feature ===
+  console.log("Setting up Chemical Equation Balancer feature...");
+
+  const balanceEquationButton = document.getElementById(
+    "balance-equation-button"
+  );
+  const unbalancedEquationInput = document.getElementById(
+    "unbalanced-equation"
+  );
+  const equationLoadingDiv = document.getElementById("equation-loading");
+  const balancedEquationResultArea = document.getElementById(
+    "balanced-equation-result-area"
+  );
+  const balancedEquationTextP = document.getElementById(
+    "balanced-equation-text"
+  );
+  const equationExplanationResultArea = document.getElementById(
+    "equation-explanation-result-area"
+  );
+  const equationExplanationTextDiv = document.getElementById(
+    "equation-explanation-text"
+  );
+  const equationErrorDiv = document.getElementById("equation-error");
+  const equationTtsButton = document.querySelector(
+    '.read-aloud-button[data-target="equation-explanation-text"]'
+  );
+
+  // Check if elements exist
+  if (
+    balanceEquationButton &&
+    unbalancedEquationInput &&
+    equationLoadingDiv &&
+    balancedEquationResultArea &&
+    balancedEquationTextP &&
+    equationExplanationResultArea &&
+    equationExplanationTextDiv &&
+    equationErrorDiv
+  ) {
+    console.log("Equation Balancer elements found. Attaching listener.");
+
+    balanceEquationButton.addEventListener("click", async () => {
+      console.log("Balance Equation button clicked.");
+      const unbalancedEquation = unbalancedEquationInput.value.trim();
+
+      if (!unbalancedEquation) {
+        displayEquationError("Please enter an unbalanced chemical equation.");
+        return;
+      }
+
+      // Reset UI
+      equationLoadingDiv.style.display = "block";
+      balancedEquationResultArea.style.display = "none";
+      equationExplanationResultArea.style.display = "none";
+      balancedEquationTextP.textContent = "";
+      equationExplanationTextDiv.innerHTML = ""; // Use innerHTML if explanation might have formatting
+      equationErrorDiv.style.display = "none";
+      if (equationTtsButton) equationTtsButton.style.display = "none";
+
+      try {
+        console.log("Sending equation for balancing and explanation...");
+        const response = await fetch("/balance-chemical-equation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ equation: unbalancedEquation }),
+        });
+
+        equationLoadingDiv.style.display = "none";
+        const data = await response.json();
+
+        if (!response.ok) {
+          const errorMsg =
+            data.error ||
+            `HTTP error! status: ${response.status} ${response.statusText}`;
+          console.error("Equation balancing/explanation failed:", errorMsg);
+          displayEquationError(errorMsg);
+        } else {
+          console.log("Equation data received:", data);
+          // Display balanced equation
+          balancedEquationTextP.textContent =
+            data.balanced_equation || "Could not determine balanced equation.";
+          balancedEquationResultArea.style.display = "block";
+
+          // Display explanation (attempt to format if it contains list-like structures)
+          const explanationHtml = formatTextWithLists(
+            data.explanation || "No explanation provided."
+          );
+          equationExplanationTextDiv.innerHTML = explanationHtml;
+          equationExplanationResultArea.style.display = "block";
+
+          // Show TTS button for explanation
+          if (
+            equationTtsButton &&
+            data.explanation &&
+            data.explanation.trim()
+          ) {
+            equationTtsButton.style.display = "inline-block";
+          }
+        }
+      } catch (error) {
+        console.error(
+          "Error during equation balancing fetch operation:",
+          error
+        );
+        equationLoadingDiv.style.display = "none";
+        displayEquationError(
+          "A network or unexpected error occurred. Please check the console."
+        );
+      }
+    }); // End button listener
+  } else {
+    console.log("Equation Balancer elements not fully found on this page.");
+    // Add detailed checks if needed
+    if (!balanceEquationButton) console.log("Missing: balance-equation-button");
+    // etc.
+  }
+
+  // --- Helper function to display equation errors ---
+  function displayEquationError(errorMessage) {
+    if (!equationErrorDiv) return;
+    equationErrorDiv.textContent = `Error: ${errorMessage}`;
+    equationErrorDiv.className = "result-box error";
+    equationErrorDiv.style.display = "block";
+    // Hide other elements
+    if (balancedEquationResultArea)
+      balancedEquationResultArea.style.display = "none";
+    if (equationExplanationResultArea)
+      equationExplanationResultArea.style.display = "none";
+    if (equationLoadingDiv) equationLoadingDiv.style.display = "none";
+    if (equationTtsButton) equationTtsButton.style.display = "none";
+  }
+
+  // --- Reusable helper function to format text that might contain markdown-like lists ---
+  // (You might already have a similar function from History Flow or Examples; adapt or reuse)
+  function formatTextWithLists(text) {
+    if (!text || typeof text !== "string") return "";
+    const lines = text.split("\n");
+    let htmlContent = "";
+    let listType = null; // 'ul' or 'ol'
+
+    lines.forEach((line) => {
+      const trimmedLine = line.trim();
+      let currentItemType = null;
+      let itemText = "";
+
+      if (trimmedLine.startsWith("* ") || trimmedLine.startsWith("- ")) {
+        currentItemType = "ul";
+        itemText = trimmedLine.substring(2);
+      } else if (trimmedLine.match(/^\d+\.\s/)) {
+        // Matches "1. ", "2. ", etc.
+        currentItemType = "ol";
+        itemText = trimmedLine.replace(/^\d+\.\s/, "");
+      }
+
+      if (currentItemType) {
+        if (listType !== currentItemType) {
+          // New list or changed type
+          if (listType) htmlContent += `</${listType}>`; // Close previous list
+          listType = currentItemType;
+          htmlContent += `<${listType}>`;
+        }
+        const li = document.createElement("li");
+        li.textContent = itemText; // Safely set text content
+        htmlContent += li.outerHTML;
+      } else {
+        // Not a list item
+        if (listType) {
+          // If a list was open, close it
+          htmlContent += `</${listType}>`;
+          listType = null;
+        }
+        if (trimmedLine.length > 0) {
+          // Add non-empty lines as paragraphs
+          const p = document.createElement("p");
+          p.textContent = trimmedLine; // Safely set text content
+          htmlContent += p.outerHTML;
+        } else if (
+          htmlContent.length > 0 &&
+          !htmlContent.endsWith("</p>") &&
+          !htmlContent.endsWith("</ul>") &&
+          !htmlContent.endsWith("</ol>")
+        ) {
+          // Add a line break for empty lines between paragraphs or after lists, but not if it's just empty.
+          // This helps preserve paragraph spacing from the AI.
+          // htmlContent += '<br>'; // Or handle spacing with CSS margins on <p>, <ul>, <ol>
+        }
+      }
+    });
+    if (listType) {
+      htmlContent += `</${listType}>`;
+    } // Close any open list at the end
+
+    return htmlContent.trim() ? htmlContent : `<p>${text}</p>`; // Fallback if no formatting applied
+  }
+
+  // === END NEW SECTION ===
+
+  // === NEW SECTION: Biological Process Explainer Feature ===
+  console.log("Setting up Biological Process Explainer feature...");
+
+  const explainProcessButton = document.getElementById(
+    "explain-process-button"
+  );
+  const biologicalProcessInput = document.getElementById("biological-process");
+  const processLoadingDiv = document.getElementById("process-loading");
+  const processExplanationResultDiv = document.getElementById(
+    "process-explanation-result"
+  );
+  const processNameHeading = document.getElementById("process-name-heading");
+  const processOverviewDiv = document.getElementById("process-overview");
+  const processStagesDiv = document.getElementById("process-stages");
+  const processIODiv = document.getElementById("process-io");
+  const processSignificanceDiv = document.getElementById(
+    "process-significance"
+  );
+  const processErrorDiv = document.getElementById("process-error");
+  const processTtsButton = document.querySelector(
+    '.read-aloud-button[data-target="process-explanation-result"]'
+  );
+
+  // Check if elements exist
+  if (
+    explainProcessButton &&
+    biologicalProcessInput &&
+    processLoadingDiv &&
+    processExplanationResultDiv &&
+    processNameHeading &&
+    processOverviewDiv &&
+    processStagesDiv &&
+    processIODiv &&
+    processSignificanceDiv &&
+    processErrorDiv
+  ) {
+    console.log(
+      "Biological Process Explainer elements found. Attaching listener."
+    );
+
+    explainProcessButton.addEventListener("click", async () => {
+      console.log("Explain Process button clicked.");
+      const processName = biologicalProcessInput.value.trim();
+
+      if (!processName) {
+        displayProcessError("Please enter the name of a biological process.");
+        return;
+      }
+
+      // Reset UI
+      processLoadingDiv.style.display = "block";
+      processExplanationResultDiv.style.display = "none"; // Hide main container
+      processNameHeading.textContent = "";
+      processOverviewDiv.innerHTML = "";
+      processStagesDiv.innerHTML = "";
+      processIODiv.innerHTML = "";
+      processSignificanceDiv.innerHTML = "";
+      processErrorDiv.style.display = "none";
+      if (processTtsButton) processTtsButton.style.display = "none";
+
+      try {
+        console.log("Sending process name for explanation...");
+        const response = await fetch("/explain-biological-process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ process_name: processName }),
+        });
+
+        processLoadingDiv.style.display = "none";
+        const data = await response.json();
+
+        if (!response.ok) {
+          const errorMsg =
+            data.error ||
+            `HTTP error! status: ${response.status} ${response.statusText}`;
+          console.error("Process explanation failed:", errorMsg);
+          displayProcessError(errorMsg);
+        } else {
+          console.log("Process explanation data received:", data);
+          displayProcessExplanation(data); // Display the structured data
+        }
+      } catch (error) {
+        console.error(
+          "Error during process explanation fetch operation:",
+          error
+        );
+        processLoadingDiv.style.display = "none";
+        displayProcessError(
+          "A network or unexpected error occurred. Please check the console."
+        );
+      }
+    }); // End button listener
+  } else {
+    console.log(
+      "Biological Process Explainer elements not fully found on this page."
+    );
+    // Add detailed checks if needed
+  }
+
+  // --- Helper function to display the structured process explanation ---
+  function displayProcessExplanation(data) {
+    if (!data || typeof data !== "object") {
+      displayProcessError("Received invalid data format from server.");
+      return;
+    }
+
+    processNameHeading.textContent =
+      data.process_name_explained || "Process Explanation";
+    // Use textContent for safety, or a formatting function if HTML lists are expected
+    processOverviewDiv.textContent = data.overview || "No overview provided.";
+
+    // Format key_stages as a list
+    if (
+      data.key_stages &&
+      Array.isArray(data.key_stages) &&
+      data.key_stages.length > 0
+    ) {
+      const ul = document.createElement("ul");
+      data.key_stages.forEach((stage) => {
+        const li = document.createElement("li");
+        li.textContent = stage; // Safely set text
+        ul.appendChild(li);
+      });
+      processStagesDiv.innerHTML = ""; // Clear previous
+      processStagesDiv.appendChild(ul);
+    } else {
+      processStagesDiv.textContent =
+        "No specific stages listed or process is continuous.";
+    }
+
+    processIODiv.textContent =
+      data.inputs_outputs || "Inputs/Outputs not specified.";
+    processSignificanceDiv.textContent =
+      data.significance || "Significance not specified.";
+
+    processExplanationResultDiv.style.display = "block"; // Show the main container
+
+    // Show TTS button if there's content
+    // Check if any of the main content divs have text
+    const hasContent =
+      [data.overview, data.inputs_outputs, data.significance].some(
+        (text) => text && text.trim().length > 0
+      ) ||
+      (data.key_stages && data.key_stages.length > 0);
+
+    if (processTtsButton && hasContent) {
+      processTtsButton.style.display = "inline-block";
+    }
+  }
+
+  // --- Helper function to display process errors ---
+  function displayProcessError(errorMessage) {
+    if (!processErrorDiv) return;
+    processErrorDiv.textContent = `Error: ${errorMessage}`;
+    processErrorDiv.className = "result-box error";
+    processErrorDiv.style.display = "block";
+    // Hide other elements
+    if (processExplanationResultDiv)
+      processExplanationResultDiv.style.display = "none";
+    if (processLoadingDiv) processLoadingDiv.style.display = "none";
+    if (processTtsButton) processTtsButton.style.display = "none";
+  }
+
+  // === END NEW SECTION ===
+
+  // === NEW SECTION: Flashcard Generator Feature ===
+  console.log("Setting up Flashcard Generator feature...");
+
+  const generateFlashcardsButton = document.getElementById(
+    "generate-flashcards-button"
+  );
+  const flashcardSourceTextInput = document.getElementById(
+    "flashcard-source-text"
+  );
+  const flashcardsLoadingDiv = document.getElementById("flashcards-loading");
+  const flashcardsResultAreaDiv = document.getElementById(
+    "flashcards-result-area"
+  );
+  const flashcardsListDiv = document.getElementById("flashcards-list");
+  const flashcardsErrorDiv = document.getElementById("flashcards-error");
+
+  // Check if elements exist
+  if (
+    generateFlashcardsButton &&
+    flashcardSourceTextInput &&
+    flashcardsLoadingDiv &&
+    flashcardsResultAreaDiv &&
+    flashcardsListDiv &&
+    flashcardsErrorDiv
+  ) {
+    console.log("Flashcard Generator elements found. Attaching listener.");
+
+    generateFlashcardsButton.addEventListener("click", async () => {
+      console.log("Generate Flashcards button clicked.");
+      const sourceText = flashcardSourceTextInput.value.trim();
+
+      if (!sourceText) {
+        displayFlashcardsError(
+          "Please enter a topic or text to generate flashcards from."
+        );
+        return;
+      }
+
+      // Reset UI
+      flashcardsLoadingDiv.style.display = "block";
+      flashcardsResultAreaDiv.style.display = "none"; // Hide main result area
+      flashcardsListDiv.innerHTML = ""; // Clear previous list
+      flashcardsErrorDiv.style.display = "none"; // Hide previous error
+
+      try {
+        console.log("Sending text for flashcard generation...");
+        const response = await fetch("/generate-flashcards", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source_text: sourceText }),
+        });
+
+        flashcardsLoadingDiv.style.display = "none";
+        const data = await response.json();
+
+        if (!response.ok) {
+          const errorMsg =
+            data.error ||
+            `HTTP error! status: ${response.status} ${response.statusText}`;
+          console.error("Flashcard generation failed:", errorMsg);
+          displayFlashcardsError(errorMsg);
+        } else {
+          if (data.flashcards && Array.isArray(data.flashcards)) {
+            console.log("Flashcard data received:", data.flashcards);
+            if (data.flashcards.length > 0) {
+              displayFlashcards(data.flashcards);
+              flashcardsResultAreaDiv.style.display = "block"; // Show result area
+            } else {
+              displayFlashcardsError(
+                "No key terms found to generate flashcards for this input."
+              );
+            }
+          } else {
+            console.error(
+              "Received success but no valid flashcard data structure:",
+              data
+            );
+            displayFlashcardsError(
+              "Failed to generate flashcards. The AI response might be malformed."
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Error during flashcard fetch operation:", error);
+        flashcardsLoadingDiv.style.display = "none";
+        displayFlashcardsError(
+          "A network or unexpected error occurred. Please check the console."
+        );
+      }
+    }); // End button listener
+  } else {
+    console.log("Flashcard Generator elements not fully found on this page.");
+    // Add detailed checks if needed
+  }
+
+  // --- Helper function to display the generated flashcards ---
+  function displayFlashcards(flashcardData) {
+    flashcardsListDiv.innerHTML = ""; // Clear previous list content
+
+    const dl = document.createElement("dl");
+    dl.classList.add("flashcard-list"); // Add class for styling
+
+    flashcardData.forEach((card, index) => {
+      if (card.term && card.definition) {
+        const dt = document.createElement("dt"); // Term
+        dt.textContent = card.term;
+
+        const dd = document.createElement("dd"); // Definition
+        const definitionTextSpan = document.createElement("span");
+        definitionTextSpan.classList.add("flashcard-definition-text");
+        definitionTextSpan.textContent = card.definition;
+        // Unique ID for the definition text span for TTS targeting
+        const definitionId = `flashcard-def-${index}`;
+        definitionTextSpan.id = definitionId;
+
+        dd.appendChild(definitionTextSpan);
+
+        // Add individual TTS button for each definition
+        if (typeof window.speechSynthesis !== "undefined") {
+          // Check TTS support
+          const ttsButton = document.createElement("button");
+          ttsButton.classList.add("read-aloud-button");
+          ttsButton.innerHTML = '🔊 <span class="tts-button-text">Read</span>'; // Text inside span for easier update
+          ttsButton.title = `Read definition for "${card.term}" aloud`;
+          ttsButton.dataset.target = definitionId; // Target the definition span's ID
+          // ttsButton.style.display = 'inline-block'; // Make it visible
+          dd.appendChild(ttsButton);
+        }
+
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      }
+    });
+    flashcardsListDiv.appendChild(dl);
+  }
+
+  // --- Helper function to display flashcard errors ---
+  function displayFlashcardsError(errorMessage) {
+    if (!flashcardsErrorDiv) return;
+    flashcardsErrorDiv.textContent = `Error: ${errorMessage}`;
+    flashcardsErrorDiv.className = "result-box error";
+    flashcardsErrorDiv.style.display = "block";
+    // Hide other elements
+    if (flashcardsResultAreaDiv) flashcardsResultAreaDiv.style.display = "none";
+    if (flashcardsLoadingDiv) flashcardsLoadingDiv.style.display = "none";
+  }
+
+  // === END NEW SECTION ===
+
   console.log("main.js setup complete.");
 }); // End DOMContentLoaded Listener

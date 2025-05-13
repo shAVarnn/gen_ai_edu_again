@@ -841,3 +841,134 @@ font-weight: normal; /* Make radio labels normal weight *
 .quiz-score h3 {
   margin: 0 0 5px 0;
 }
+
+/* File: static/css/style.css */
+
+/* ... (keep all existing styles) ... */
+
+/* --- Chemical Equation Balancer Styles --- */
+#balanced-equation-result-area h3,
+#equation-explanation-result-area h3 {
+  margin-bottom: 8px;
+  font-size: 1.2em;
+}
+
+.code-like {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 1.1em; /* Slightly larger for readability */
+  padding: 10px 15px;
+  background-color: #e9ecef; /* Light grey background */
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  color: #495057; /* Darker text */
+  white-space: pre-wrap; /* Respect spaces */
+  word-break: break-all; /* Break long unspaced strings if needed */
+}
+
+#equation-error {
+  margin-top: 15px;
+  /* Uses .result-box.error styles */
+}
+
+/* --- Biological Process Explainer Styles --- */
+#process-explanation-result h3 {
+  /* For the process name heading */
+  margin-bottom: 15px;
+  font-size: 1.4em;
+  color: #27ae60; /* Biology-themed green */
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 8px;
+}
+
+#process-explanation-result h4 {
+  /* For sub-headings like "Key Stages" */
+  margin-top: 20px;
+  margin-bottom: 8px;
+  font-size: 1.15em;
+  color: #333;
+}
+
+.result-box.sub-section {
+  margin-bottom: 15px;
+  padding: 12px 15px;
+  background-color: #fdfdfd; /* Slightly off-white for sub-sections */
+  border-left-width: 4px; /* Thinner left border for sub-sections */
+}
+
+/* Ensure lists within these sections are styled nicely */
+.result-box.sub-section ul,
+.result-box.sub-section ol {
+  padding-left: 20px; /* Indent lists within sub-sections */
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+.result-box.sub-section li {
+  margin-bottom: 5px;
+}
+
+#process-error {
+  margin-top: 15px;
+  /* Uses .result-box.error styles */
+}
+
+/* Ensure the main read-aloud button for this section has some margin */
+.read-aloud-button[data-target="process-explanation-result"] {
+  margin-top: 15px;
+}
+
+/* File: static/css/style.css */
+
+/* ... (keep all existing styles) ... */
+
+/* --- Flashcard Generator Styles --- */
+#flashcards-result-area h3 {
+  margin-bottom: 15px;
+  font-size: 1.3em;
+}
+
+.flashcard-list {
+  /* This class will be added to the dl element by JS */
+  border-left: 3px solid #9b59b6; /* A purple accent for flashcards */
+  padding-left: 15px;
+}
+
+.flashcard-list dt {
+  /* Term */
+  font-weight: bold;
+  color: #2c3e50;
+  margin-top: 12px;
+  font-size: 1.1em;
+}
+.flashcard-list dt:first-child {
+  margin-top: 0;
+}
+
+.flashcard-list dd {
+  /* Definition */
+  margin-left: 0; /* Reset browser default */
+  margin-bottom: 12px;
+  padding-left: 10px; /* Indent definition slightly */
+  color: #34495e;
+  line-height: 1.5;
+  display: flex; /* For aligning definition and TTS button */
+  justify-content: space-between; /* Push TTS button to the right */
+  align-items: flex-start; /* Align items to the top */
+}
+
+.flashcard-list dd .flashcard-definition-text {
+  flex-grow: 1; /* Allow text to take available space */
+}
+
+/* Styling for individual TTS buttons on flashcards */
+.flashcard-list .read-aloud-button {
+  padding: 3px 6px;
+  font-size: 0.75em;
+  margin-left: 10px;
+  flex-shrink: 0; /* Prevent button from shrinking */
+  /* display: none; Initially hidden, shown by JS */
+}
+
+#flashcards-error {
+  margin-top: 15px;
+  /* Uses .result-box.error styles */
+}
