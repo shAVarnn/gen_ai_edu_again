@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Laser Diffraction Simulation</title>
+    <style>
+      body {
+        font-family: Arial;
+      }
+      #canvas {
+        border: 1px solid black;
+        display: block;
+        margin: 20px auto;
+        background-color: #f5f5f5;
+      }
+      .controls {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .controls label {
+        margin: 0 10px;
+      }
+      .info-panel {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .formula {
+        text-align: center;
+        font-family: "Times New Roman", serif;
+        font-size: 1.2em;
+        margin: 10px 0;
+        padding: 10px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2 style="text-align: center">Laser Diffraction Simulation</h2>
+    <div class="controls">
+      <label>
+        <input type="checkbox" id="gratingToggle" checked />
+        Grating in Place
+      </label>
+      <label>
+        Screen to Grating Distance (m):
+        <input
+          type="range"
+          id="distanceSlider"
+          min="3"
+          max="10"
+          step="0.1"
+          value="5"
+        />
+        <span id="distanceValue">5</span>
+      </label>
+      <label>
+        Grating lines/mm:
+        <input type="range" id="linesSlider" min="200" max="500" value="300" />
+        <span id="linesValue">300</span>
+      </label>
+      <label>
+        Wavelength (nm):
+        <input
+          type="range"
+          id="wavelengthSlider"
+          min="400"
+          max="700"
+          value="500"
+        />
+        <span id="wavelengthValue">500</span>
+      </label>
+    </div>
+    <canvas id="canvas" width="1000" height="500"></canvas>
+
+    <div class="info-panel">
+      <h3>Theory and Formulas</h3>
+      <p>
+        <strong>Principle:</strong> Laser is a device which gives a strong beam
+        of coherent photons by stimulated emissions. The laser beam is highly
+        monochromatic, coherent, directional and intense. The directionality of
+        a laser beam is expressed in terms of full angle beam divergence.
+        Divergence of a laser beam is defined as its spread with distance.
+      </p>
+
+      <p><strong>Formula:</strong> Wavelength of Laser source:</p>
+      <div class="formula">λ = (C·sin θₙ)/n</div>
+
+      <p>Where:</p>
+      <ul>
+        <li>
+          C = grating constant (distance between successive lines on the
+          grating)
+        </li>
+        <li>n = order of the maximum (1, 2, 3, ...)</li>
+        <li>θₙ = angle of diffraction for the nth order</li>
+      </ul>
+
+      <p><strong>Grating Constant calculation:</strong></p>
+      <div class="formula">C = 1/(Number of lines per unit length)</div>
+
+      <p>For a standard grating with 500 lines per inch:</p>
+      <div class="formula">
+        C = 1 inch / 500 = 2.54 × 10⁻⁵ / 500 = 5.08 × 10⁻⁷ m
+      </div>
+
+      <p><strong>Procedure:</strong></p>
+      <ol>
+        <li>
+          Mount the laser on an upright and fix it at one end of the optical
+          bench.
+        </li>
+        <li>
+          Mount a screen on another upright and fix it at the other end of the
+          bench.
+        </li>
+        <li>
+          Mark four quadrants on a graph with 'O' as the origin and fix the
+          graph sheet on the screen.
+        </li>
+        <li>
+          Place the laser source in front of the grating and adjust so the
+          central spot coincides with origin.
+        </li>
+        <li>
+          Mount the grating on a stand, ensuring the diffraction pattern is
+          horizontal with central maximum at origin.
+        </li>
+        <li>Note the distance 'd' between grating and screen.</li>
+        <li>
+          Mark the centers of the central maximum and secondary maxima on the
+          graph sheet.
+        </li>
+        <li>
+          Measure the distance between pairs of maxima on either side of the
+          central maximum as 2X₁, 2X₂, etc.
+        </li>
+        <li>Calculate θₙ for each order using: θₙ = tan⁻¹(Xₙ/d)</li>
+        <li>
+          Calculate wavelength using the formula for each order and find the
+          average value.
+        </li>
+      </ol>
+
+      <p>
+        For more accurate results, we measure multiple diffraction orders and
+        take the average of the calculated wavelengths.
+      </p>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      const gratingToggle = document.getElementById("gratingToggle");
+      const distanceSlider = document.getElementById("distanceSlider");
+      const linesSlider = document.getElementById("linesSlider");
+      const wavelengthSlider = document.getElementById("wavelengthSlider");
+
+      const distanceValue = document.getElementById("distanceValue");
+      const linesValue = document.getElementById("linesValue");
+      const wavelengthValue = document.getElementById("wavelengthValue");
+
+      let animationFrame;
+
+      function wavelengthToRGB(wavelength) {
+        let R = 0,
+          G = 0,
+          B = 0;
+        if (wavelength >= 380 && wavelength <= 440) {
+          R = -(wavelength - 440) / (440 - 380);
+          G = 0;
+          B = 1;
+        } else if (wavelength > 440 && wavelength <= 490) {
+          R = 0;
+          G = (wavelength - 440) / (490 - 440);
+          B = 1;
+        } else if (wavelength > 490 && wavelength <= 510) {
+          R = 0;
+          G = 1;
+          B = -(wavelength - 510) / (510 - 490);
+        } else if (wavelength > 510 && wavelength <= 580) {
+          R = (wavelength - 510) / (580 - 510);
+          G = 1;
+          B = 0;
+        } else if (wavelength > 580 && wavelength <= 645) {
+          R = 1;
+          G = -(wavelength - 645) / (645 - 580);
+          B = 0;
+        } else if (wavelength > 645 && wavelength <= 780) {
+          R = 1;
+          G = 0;
+          B = 0;
+        }
+
+        // Intensity factor for out-of-range wavelengths
+        let factor = 1;
+        if (wavelength > 700 || wavelength < 420) {
+          factor = 0.3;
+        }
+
+        const rgb = {
+          r: Math.round(R * 255 * factor),
+          g: Math.round(G * 255 * factor),
+          b: Math.round(B * 255 * factor),
+        };
+        return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+      }
+
+      function drawSimulation() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const d = 1 / (parseFloat(linesSlider.value) * 1000); // spacing (m)
+        const lambda = parseFloat(wavelengthSlider.value) * 1e-9; // wavelength (m)
+        const L = parseFloat(distanceSlider.value); // screen distance (m)
+        const scale = 80; // pixels per meter
+
+        const origin = { x: 150, y: canvas.height / 2 };
+        const screenX = origin.x + L * scale;
+
+        const rayColor = wavelengthToRGB(parseInt(wavelengthSlider.value));
+
+        // Draw fixed grating rail
+        ctx.strokeStyle = "#999";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(origin.x, origin.y - 40);
+        ctx.lineTo(origin.x, origin.y + 40);
+        ctx.stroke();
+
+        // Draw laser
+        ctx.fillStyle = "gray";
+        ctx.fillRect(origin.x - 60, origin.y - 10, 50, 20);
+        ctx.fillStyle = "black";
+        ctx.fillText("Laser", origin.x - 55, origin.y - 15);
+
+        // Draw laser beam (before grating)
+        ctx.strokeStyle = "green";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(origin.x - 10, origin.y);
+        ctx.lineTo(origin.x, origin.y);
+        ctx.stroke();
+
+        // Animate grating position
+        let gratingOffset = gratingToggle.checked ? 0 : 20;
+
+        // Draw grating
+        ctx.fillStyle = "#333";
+        ctx.fillRect(origin.x + gratingOffset - 2, origin.y - 30, 4, 60);
+        ctx.fillStyle = "black";
+        ctx.fillText("Grating", origin.x + gratingOffset - 20, origin.y + 50);
+
+        // Draw screen
+        ctx.fillStyle = "#555";
+        ctx.fillRect(screenX - 5, origin.y - 80, 10, 160);
+        ctx.strokeStyle = "#000";
+        ctx.strokeRect(screenX - 5, origin.y - 80, 10, 160);
+        ctx.fillStyle = "black";
+        ctx.fillText("Screen", screenX - 20, origin.y + 90);
+
+        // Draw diffraction lines
+        if (gratingToggle.checked) {
+          for (let m = -5; m <= 5; m++) {
+            if (m === 0) continue;
+            let sinTheta = (m * lambda) / d;
+            if (Math.abs(sinTheta) > 1) continue;
+            let theta = Math.asin(sinTheta);
+            let endY = Math.tan(theta) * L * scale;
+
+            ctx.strokeStyle = rayColor;
+            ctx.beginPath();
+            ctx.moveTo(origin.x + gratingOffset, origin.y);
+            ctx.lineTo(screenX, origin.y - endY);
+            ctx.stroke();
+
+            ctx.fillStyle = "black";
+            ctx.beginPath();
+            ctx.arc(screenX, origin.y - endY, 4, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.fillText(`m=${m}`, screenX + 10, origin.y - endY);
+          }
+        }
+
+        // Draw central maximum
+        ctx.strokeStyle = rayColor;
+        ctx.beginPath();
+        ctx.moveTo(origin.x + gratingOffset, origin.y);
+        ctx.lineTo(screenX, origin.y);
+        ctx.stroke();
+
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(screenX, origin.y, 5, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = "black";
+        ctx.fillText("m=0", screenX + 10, origin.y + 5);
+      }
+
+      function animate() {
+        drawSimulation();
+        animationFrame = requestAnimationFrame(animate);
+      }
+
+      [gratingToggle, distanceSlider, linesSlider, wavelengthSlider].forEach(
+        (el) => {
+          el.addEventListener("input", () => {
+            distanceValue.textContent = distanceSlider.value;
+            linesValue.textContent = linesSlider.value;
+            wavelengthValue.textContent = wavelengthSlider.value;
+            drawSimulation();
+          });
+        }
+      );
+
+      animate();
+    </script>
+  </body>
+</html>

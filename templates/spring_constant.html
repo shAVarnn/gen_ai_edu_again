@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spring Constant Simulation</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: #2c3e50;
+      }
+
+      .container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .panel {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .tabs {
+        display: flex;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .tab-button {
+        background-color: #f1f1f1;
+        border: none;
+        padding: 12px 20px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+        border-radius: 5px 5px 0 0;
+      }
+
+      .tab-button:hover {
+        background-color: #ddd;
+      }
+
+      .tab-button.active {
+        background-color: #4caf50;
+        color: white;
+      }
+
+      .tab-content {
+        display: none;
+        animation: fadeIn 0.5s;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      canvas {
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 15px;
+      }
+
+      .control-group {
+        min-width: 200px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #555;
+      }
+
+      input[type="range"],
+      input[type="number"],
+      select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 10px;
+      }
+
+      input[type="range"] {
+        padding: 0;
+      }
+
+      button {
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+      }
+
+      button:hover {
+        background-color: #45a049;
+      }
+
+      .results {
+        background-color: #e8f5e9;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 15px;
+      }
+
+      .data-display {
+        margin-top: 15px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+
+      .data-card {
+        background: white;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+        min-width: 200px;
+        flex: 1;
+      }
+
+      .footer {
+        margin-top: 30px;
+        text-align: center;
+        color: #777;
+        font-size: 14px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+      }
+
+      table,
+      th,
+      td {
+        border: 1px solid #ddd;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+      }
+
+      th {
+        background-color: #f2f2f2;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      .clear-data {
+        background-color: #f44336;
+      }
+
+      .clear-data:hover {
+        background-color: #d32f2f;
+      }
+
+      /* Theory section styling */
+      .theory {
+        line-height: 1.6;
+      }
+
+      .formula {
+        background-color: #f1f8e9;
+        padding: 10px;
+        border-left: 4px solid #4caf50;
+        margin: 15px 0;
+        font-family: "Courier New", monospace;
+      }
+
+      .spring-visual {
+        position: relative;
+        height: 400px;
+      }
+
+      .ceiling {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 20px;
+        background-color: #8d6e63;
+      }
+
+      .spring {
+        position: absolute;
+        width: 80px;
+        background-repeat: repeat-y;
+        left: 50%;
+        transform: translateX(-50%);
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="20" viewBox="0 0 80 20"><path d="M0,10 Q20,20 40,10 Q60,0 80,10" stroke="black" fill="none" stroke-width="3"/></svg>');
+      }
+
+      .spring-series {
+        left: 25%;
+      }
+
+      .spring-series-2 {
+        left: 25%;
+      }
+
+      .spring-parallel-1 {
+        left: 37%;
+      }
+
+      .spring-parallel-2 {
+        left: 63%;
+      }
+
+      .weight {
+        position: absolute;
+        width: 80px;
+        height: 40px;
+        background-color: #455a64;
+        border-radius: 5px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+      }
+
+      .parallel-weights {
+        width: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="panel">
+        <h1>Spring Constant Simulation</h1>
+        <p>
+          This interactive simulation allows you to perform experiments to
+          determine spring constants for individual springs, springs in series,
+          and springs in parallel.
+        </p>
+
+        <div class="tabs">
+          <button class="tab-button active" onclick="openTab(event, 'single')">
+            Single Spring
+          </button>
+          <button class="tab-button" onclick="openTab(event, 'series')">
+            Springs in Series
+          </button>
+          <button class="tab-button" onclick="openTab(event, 'parallel')">
+            Springs in Parallel
+          </button>
+          <button class="tab-button" onclick="openTab(event, 'theory')">
+            Theory
+          </button>
+        </div>
+
+        <!-- Single Spring Tab -->
+        <div id="single" class="tab-content active">
+          <h2>Experiment A: Single Spring Constant</h2>
+          <p>
+            Add different masses to a spring and observe the extension to
+            calculate the spring constant (k).
+          </p>
+
+          <div class="controls">
+            <div class="control-group">
+              <label for="single-spring-type">Spring Type:</label>
+              <select id="single-spring-type" onchange="updateSingleSpring()">
+                <option value="1">Soft Spring (Lower k)</option>
+                <option value="2">Medium Spring</option>
+                <option value="3">Stiff Spring (Higher k)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="single-mass">Mass (kg):</label>
+              <input
+                type="range"
+                id="single-mass"
+                min="0.05"
+                max="0.5"
+                step="0.05"
+                value="0.1"
+                oninput="updateSingleMassDisplay()"
+              />
+              <input
+                type="number"
+                id="single-mass-display"
+                min="0.05"
+                max="0.5"
+                step="0.05"
+                value="0.1"
+                onchange="updateSingleMassSlider()"
+              />
+            </div>
+
+            <div class="control-group">
+              <label for="single-gravity">Gravity (m/s²):</label>
+              <input
+                type="range"
+                id="single-gravity"
+                min="1"
+                max="15"
+                step="0.1"
+                value="9.8"
+                oninput="updateSingleGravityDisplay()"
+              />
+              <input
+                type="number"
+                id="single-gravity-display"
+                min="1"
+                max="15"
+                step="0.1"
+                value="9.8"
+                onchange="updateSingleGravitySlider()"
+              />
+            </div>
+          </div>
+
+          <button onclick="startSingleSimulation()">Start Simulation</button>
+          <button onclick="resetSingleSimulation()">Reset</button>
+          <button onclick="addSingleDataPoint()" class="record-data">
+            Record Data Point
+          </button>
+          <button onclick="clearSingleData()" class="clear-data">
+            Clear Data
+          </button>
+
+          <div class="spring-visual" id="single-spring-visual">
+            <div class="ceiling"></div>
+            <div class="spring" id="single-spring"></div>
+            <div class="weight" id="single-weight">0.1 kg</div>
+          </div>
+
+          <div class="results" id="single-results">
+            <h3>Results:</h3>
+            <div>
+              Initial length: <span id="single-initial-length">0.0</span> m
+            </div>
+            <div>
+              Extended length: <span id="single-extended-length">0.0</span> m
+            </div>
+            <div>Extension (Δx): <span id="single-extension">0.0</span> m</div>
+            <div>Force (F = mg): <span id="single-force">0.0</span> N</div>
+            <div>
+              Spring constant (k = F/Δx):
+              <span id="single-spring-constant">0.0</span> N/m
+            </div>
+          </div>
+
+          <div class="data-display">
+            <div class="data-card">
+              <h3>Recorded Data:</h3>
+              <table id="single-data-table">
+                <thead>
+                  <tr>
+                    <th>Trial</th>
+                    <th>Mass (kg)</th>
+                    <th>Force (N)</th>
+                    <th>Extension (m)</th>
+                    <th>k (N/m)</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="data-card">
+              <h3>Force vs. Extension Graph:</h3>
+              <canvas id="single-graph" width="500" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Series Springs Tab -->
+        <div id="series" class="tab-content">
+          <h2>Experiment B: Springs in Series</h2>
+          <p>
+            Examine how two springs behave when connected in series and
+            calculate the equivalent spring constant.
+          </p>
+
+          <div class="controls">
+            <div class="control-group">
+              <label for="series-spring1-type">First Spring:</label>
+              <select id="series-spring1-type" onchange="updateSeriesSprings()">
+                <option value="1">Soft Spring (k₁ = 10 N/m)</option>
+                <option value="2">Medium Spring (k₁ = 25 N/m)</option>
+                <option value="3">Stiff Spring (k₁ = 50 N/m)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="series-spring2-type">Second Spring:</label>
+              <select id="series-spring2-type" onchange="updateSeriesSprings()">
+                <option value="1">Soft Spring (k₂ = 10 N/m)</option>
+                <option value="2" selected>Medium Spring (k₂ = 25 N/m)</option>
+                <option value="3">Stiff Spring (k₂ = 50 N/m)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="series-mass">Mass (kg):</label>
+              <input
+                type="range"
+                id="series-mass"
+                min="0.05"
+                max="0.5"
+                step="0.05"
+                value="0.2"
+                oninput="updateSeriesMassDisplay()"
+              />
+              <input
+                type="number"
+                id="series-mass-display"
+                min="0.05"
+                max="0.5"
+                step="0.05"
+                value="0.2"
+                onchange="updateSeriesMassSlider()"
+              />
+            </div>
+
+            <div class="control-group">
+              <label for="series-gravity">Gravity (m/s²):</label>
+              <input
+                type="range"
+                id="series-gravity"
+                min="1"
+                max="15"
+                step="0.1"
+                value="9.8"
+                oninput="updateSeriesGravityDisplay()"
+              />
+              <input
+                type="number"
+                id="series-gravity-display"
+                min="1"
+                max="15"
+                step="0.1"
+                value="9.8"
+                onchange="updateSeriesGravitySlider()"
+              />
+            </div>
+          </div>
+
+          <button onclick="startSeriesSimulation()">Start Simulation</button>
+          <button onclick="resetSeriesSimulation()">Reset</button>
+          <button onclick="addSeriesDataPoint()" class="record-data">
+            Record Data Point
+          </button>
+          <button onclick="clearSeriesData()" class="clear-data">
+            Clear Data
+          </button>
+
+          <div class="spring-visual" id="series-spring-visual">
+            <div class="ceiling"></div>
+            <div class="spring spring-series" id="series-spring1"></div>
+            <div class="spring spring-series-2" id="series-spring2"></div>
+            <div class="weight" id="series-weight">0.2 kg</div>
+          </div>
+
+          <div class="results" id="series-results">
+            <h3>Results:</h3>
+            <div>
+              Spring 1 constant (k₁): <span id="series-k1">0.0</span> N/m
+            </div>
+            <div>
+              Spring 2 constant (k₂): <span id="series-k2">0.0</span> N/m
+            </div>
+            <div>
+              Total extension (Δx): <span id="series-extension">0.0</span> m
+            </div>
+            <div>Force (F = mg): <span id="series-force">0.0</span> N</div>
+            <div>
+              Equivalent spring constant (keq):
+              <span id="series-equivalent-k">0.0</span> N/m
+            </div>
+            <div>
+              Theoretical keq (1/keq = 1/k₁ + 1/k₂):
+              <span id="series-theoretical-k">0.0</span> N/m
+            </div>
+          </div>
+
+          <div class="data-display">
+            <div class="data-card">
+              <h3>Recorded Data:</h3>
+              <table id="series-data-table">
+                <thead>
+                  <tr>
+                    <th>Trial</th>
+                    <th>Mass (kg)</th>
+                    <th>k₁ (N/m)</th>
+                    <th>k₂ (N/m)</th>
+                    <th>Measured keq (N/m)</th>
+                    <th>Theoretical keq (N/m)</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Parallel Springs Tab -->
+        <div id="parallel" class="tab-content">
+          <h2>Experiment C: Springs in Parallel</h2>
+          <p>
+            Examine how two springs behave when connected in parallel and
+            calculate the equivalent spring constant.
+          </p>
+
+          <div class="controls">
+            <div class="control-group">
+              <label for="parallel-spring1-type">First Spring:</label>
+              <select
+                id="parallel-spring1-type"
+                onchange="updateParallelSprings()"
+              >
+                <option value="1">Soft Spring (k₁ = 10 N/m)</option>
+                <option value="2">Medium Spring (k₁ = 25 N/m)</option>
+                <option value="3">Stiff Spring (k₁ = 50 N/m)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="parallel-spring2-type">Second Spring:</label>
+              <select
+                id="parallel-spring2-type"
+                onchange="updateParallelSprings()"
+              >
+                <option value="1">Soft Spring (k₂ = 10 N/m)</option>
+                <option value="2" selected>Medium Spring (k₂ = 25 N/m)</option>
+                <option value="3">Stiff Spring (k₂ = 50 N/m)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="parallel-mass">Mass (kg):</label>
+              <input
+                type="range"
+                id="parallel-mass"
+                min="0.05"
+                max="0.5"
+                step="0.05"
+                value="0.3"
+                oninput="updateParallelMassDisplay()"
+              />
+              <input
+                type="number"
+                id="parallel-mass-display"
+                min="0.05"
+                max="0.5"
+                step="0.05"
+                value="0.3"
+                onchange="updateParallelMassSlider()"
+              />
+            </div>
+
+            <div class="control-group">
+              <label for="parallel-gravity">Gravity (m/s²):</label>
+              <input
+                type="range"
+                id="parallel-gravity"
+                min="1"
+                max="15"
+                step="0.1"
+                value="9.8"
+                oninput="updateParallelGravityDisplay()"
+              />
+              <input
+                type="number"
+                id="parallel-gravity-display"
+                min="1"
+                max="15"
+                step="0.1"
+                value="9.8"
+                onchange="updateParallelGravitySlider()"
+              />
+            </div>
+          </div>
+
+          <button onclick="startParallelSimulation()">Start Simulation</button>
+          <button onclick="resetParallelSimulation()">Reset</button>
+          <button onclick="addParallelDataPoint()" class="record-data">
+            Record Data Point
+          </button>
+          <button onclick="clearParallelData()" class="clear-data">
+            Clear Data
+          </button>
+
+          <div class="spring-visual" id="parallel-spring-visual">
+            <div class="ceiling"></div>
+            <div class="spring spring-parallel-1" id="parallel-spring1"></div>
+            <div class="spring spring-parallel-2" id="parallel-spring2"></div>
+            <div class="weight parallel-weights" id="parallel-weight">
+              0.3 kg
+            </div>
+          </div>
+
+          <div class="results" id="parallel-results">
+            <h3>Results:</h3>
+            <div>
+              Spring 1 constant (k₁): <span id="parallel-k1">0.0</span> N/m
+            </div>
+            <div>
+              Spring 2 constant (k₂): <span id="parallel-k2">0.0</span> N/m
+            </div>
+            <div>
+              Extension (Δx): <span id="parallel-extension">0.0</span> m
+            </div>
+            <div>Force (F = mg): <span id="parallel-force">0.0</span> N</div>
+            <div>
+              Equivalent spring constant (keq):
+              <span id="parallel-equivalent-k">0.0</span> N/m
+            </div>
+            <div>
+              Theoretical keq (keq = k₁ + k₂):
+              <span id="parallel-theoretical-k">0.0</span> N/m
+            </div>
+          </div>
+
+          <div class="data-display">
+            <div class="data-card">
+              <h3>Recorded Data:</h3>
+              <table id="parallel-data-table">
+                <thead>
+                  <tr>
+                    <th>Trial</th>
+                    <th>Mass (kg)</th>
+                    <th>k₁ (N/m)</th>
+                    <th>k₂ (N/m)</th>
+                    <th>Measured keq (N/m)</th>
+                    <th>Theoretical keq (N/m)</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theory Tab -->
+        <div id="theory" class="tab-content">
+          <h2>Theory: Spring Constants & Combinations</h2>
+
+          <div class="theory">
+            <h3>Hooke's Law</h3>
+            <p>
+              According to Hooke's Law, the force needed to extend or compress a
+              spring by a distance x is proportional to that distance:
+            </p>
+            <div class="formula">F = -kx</div>
+            <p>Where:</p>
+            <ul>
+              <li>F is the force (in Newtons, N)</li>
+              <li>k is the spring constant (in N/m)</li>
+              <li>
+                x is the displacement from equilibrium position (in meters, m)
+              </li>
+            </ul>
+            <p>
+              The negative sign indicates that the force is in the opposite
+              direction to the displacement (restoring force).
+            </p>
+
+            <h3>Determining Spring Constant</h3>
+            <p>
+              In a vertical setup with a mass hanging from a spring, the spring
+              stretches until the restoring force balances the weight of the
+              mass:
+            </p>
+            <div class="formula">mg = kx</div>
+            <p>Therefore, the spring constant can be calculated as:</p>
+            <div class="formula">k = mg/x = F/x</div>
+            <p>Where:</p>
+            <ul>
+              <li>m is the mass (in kg)</li>
+              <li>g is the acceleration due to gravity (9.8 m/s²)</li>
+              <li>x is the extension (in m)</li>
+            </ul>
+
+            <h3>Springs in Series</h3>
+            <p>
+              When two springs with constants k₁ and k₂ are connected in series,
+              the equivalent spring constant keq is given by:
+            </p>
+            <div class="formula">1/keq = 1/k₁ + 1/k₂</div>
+            <p>
+              This is analogous to resistors in parallel in electrical circuits.
+              The equivalent spring constant is always less than either
+              individual spring constant.
+            </p>
+
+            <h3>Springs in Parallel</h3>
+            <p>
+              When two springs with constants k₁ and k₂ are connected in
+              parallel, the equivalent spring constant keq is given by:
+            </p>
+            <div class="formula">keq = k₁ + k₂</div>
+            <p>
+              This is analogous to resistors in series in electrical circuits.
+              The equivalent spring constant is always greater than either
+              individual spring constant.
+            </p>
+
+            <h3>Experimental Method</h3>
+            <p>To determine spring constants experimentally:</p>
+            <ol>
+              <li>Measure the initial length of the unloaded spring</li>
+              <li>Add a known mass to the spring</li>
+              <li>Measure the new length of the spring</li>
+              <li>
+                Calculate the extension (Δx) by subtracting initial length from
+                new length
+              </li>
+              <li>Calculate the force (F = mg)</li>
+              <li>Calculate the spring constant using k = F/Δx</li>
+              <li>Repeat with different masses to verify linearity</li>
+            </ol>
+
+            <h3>Sources of Error</h3>
+            <p>
+              Common sources of error in spring constant experiments include:
+            </p>
+            <ul>
+              <li>Initial measurement errors</li>
+              <li>
+                Spring not returning to original length (plastic deformation)
+              </li>
+              <li>Non-ideal springs (not following Hooke's Law exactly)</li>
+              <li>Mass of the spring itself (may need to be accounted for)</li>
+              <li>Friction or air resistance affecting measurements</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>Physics Laboratory Simulation - Spring Constants</p>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+      // Global variables
+      let singleAnimationId = null;
+      let seriesAnimationId = null;
+      let parallelAnimationId = null;
+
+      // Spring constants for different types
+      const springConstants = {
+        1: 10, // Soft spring: 10 N/m
+        2: 25, // Medium spring: 25 N/m
+        3: 50, // Stiff spring: 50 N/m
+      };
+
+      // Natural lengths of springs (meters)
+      const naturalLengths = {
+        single: 0.2,
+        series: 0.15,
+        parallel: 0.15,
+      };
+
+      // Data storage
+      const singleData = [];
+      const seriesData = [];
+      const parallelData = [];
+
+      // Single spring chart
+      let singleChart = null;
+
+      // Initialize simulation
+      window.onload = function () {
+        initializeSingleSpring();
+        initializeSeriesSprings();
+        initializeParallelSprings();
+        initializeSingleChart();
+      };
+
+      // Tab navigation
+      function openTab(evt, tabName) {
+        const tabContents = document.getElementsByClassName("tab-content");
+        for (let i = 0; i < tabContents.length; i++) {
+          tabContents[i].classList.remove("active");
+        }
+
+        const tabButtons = document.getElementsByClassName("tab-button");
+        for (let i = 0; i < tabButtons.length; i++) {
+          tabButtons[i].classList.remove("active");
+        }
+
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+      }
+
+      // SINGLE SPRING FUNCTIONS
+      function initializeSingleSpring() {
+        const springVisual = document.getElementById("single-spring-visual");
+        const spring = document.getElementById("single-spring");
+        const weight = document.getElementById("single-weight");
+
+        const springType = document.getElementById("single-spring-type").value;
+        const k = springConstants[springType];
+
+        spring.style.height = `${naturalLengths.single * 1000}px`;
+        spring.style.top = "20px";
+
+        const weightTop = 20 + naturalLengths.single * 1000;
+        weight.style.top = `${weightTop}px`;
+
+        document.getElementById("single-initial-length").textContent =
+          naturalLengths.single.toFixed(2);
+        document.getElementById("single-extended-length").textContent =
+          naturalLengths.single.toFixed(2);
+        document.getElementById("single-extension").textContent = "0.00";
+        document.getElementById("single-force").textContent = "0.00";
+        document.getElementById("single-spring-constant").textContent =
+          k.toFixed(2);
+      }
+
+      function updateSingleSpring() {
+        initializeSingleSpring();
+      }
+
+      function updateSingleMassDisplay() {
+        const massValue = document.getElementById("single-mass").value;
+        document.getElementById("single-mass-display").value = massValue;
+        document.getElementById(
+          "single-weight"
+        ).textContent = `${massValue} kg`;
+      }
+
+      function updateSingleMassSlider() {
+        const massValue = document.getElementById("single-mass-display").value;
+        document.getElementById("single-mass").value = massValue;
+        document.getElementById(
+          "single-weight"
+        ).textContent = `${massValue} kg`;
+      }
+
+      function updateSingleGravityDisplay() {
+        const gravityValue = document.getElementById("single-gravity").value;
+        document.getElementById("single-gravity-display").value = gravityValue;
+      }
+
+      function updateSingleGravitySlider() {
+        const gravityValue = document.getElementById(
+          "single-gravity-display"
+        ).value;
+        document.getElementById("single-gravity").value = gravityValue;
+      }
+
+      function startSingleSimulation() {
+        // Cancel any existing animation
+        if (singleAnimationId) {
+          cancelAnimationFrame(singleAnimationId);
+        }
+
+        const springType = document.getElementById("single-spring-type").value;
+        const k = springConstants[springType];
+        const mass = parseFloat(document.getElementById("single-mass").value);
+        const gravity = parseFloat(
+          document.getElementById("single-gravity").value
+        );
+
+        const spring = document.getElementById("single-spring");
+        const weight = document.getElementById("single-weight");
+
+        // Calculate extension based on Hooke's law: F = kx, so x = F/k = mg/k
+        const force = mass * gravity;
+        const extension = force / k;
+
+        // Calculate new length (natural length + extension)
+        const newLength = naturalLengths.single + extension;
+
+        // Set the target heights for animation
+        const targetSpringHeight = newLength * 1000; // Convert to pixels
+        const targetWeightPosition = 20 + targetSpringHeight; // Ceiling (20px) + spring height
+
+        // Animate the spring and weight
+        let startTime = null;
+        const animationDuration = 1000; // 1 second
+
+        function animateSingleSpring(timestamp) {
+          if (!startTime) startTime = timestamp;
+          const elapsed = timestamp - startTime;
+          const progress = Math.min(elapsed / animationDuration, 1);
+
+          // Apply easing function for realistic spring motion
+          const easedProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
+
+          // Calculate intermediate height/position
+          const currentSpringHeight =
+            naturalLengths.single * 1000 +
+            (targetSpringHeight - naturalLengths.single * 1000) * easedProgress;
+          const currentWeightPosition = 20 + currentSpringHeight;
+
+          // Apply to elements
+          spring.style.height = `${currentSpringHeight}px`;
+          weight.style.top = `${currentWeightPosition}px`;
+
+          // Update results in real-time
+          document.getElementById("single-extended-length").textContent = (
+            currentSpringHeight / 1000
+          ).toFixed(2);
+          document.getElementById("single-extension").textContent = (
+            (currentSpringHeight - naturalLengths.single * 1000) /
+            1000
+          ).toFixed(2);
+          document.getElementById("single-force").textContent =
+            force.toFixed(2);
+          document.getElementById("single-spring-constant").textContent =
+            k.toFixed(2);
+
+          // Continue animation if not complete
+          if (progress < 1) {
+            singleAnimationId = requestAnimationFrame(animateSingleSpring);
+          } else {
+            // Animation complete - final update
+            document.getElementById("single-extended-length").textContent =
+              newLength.toFixed(2);
+            document.getElementById("single-extension").textContent =
+              extension.toFixed(2);
+          }
+        }
+
+        // Start animation
+        singleAnimationId = requestAnimationFrame(animateSingleSpring);
+      }
+
+      function resetSingleSimulation() {
+        if (singleAnimationId) {
+          cancelAnimationFrame(singleAnimationId);
+        }
+        initializeSingleSpring();
+      }
+
+      function addSingleDataPoint() {
+        const springType = document.getElementById("single-spring-type").value;
+        const k = springConstants[springType];
+        const mass = parseFloat(document.getElementById("single-mass").value);
+        const gravity = parseFloat(
+          document.getElementById("single-gravity").value
+        );
+
+        const force = mass * gravity;
+        const extension = parseFloat(
+          document.getElementById("single-extension").textContent
+        );
+        const calculatedK = force / extension;
+
+        const dataPoint = {
+          trial: singleData.length + 1,
+          mass: mass,
+          force: force,
+          extension: extension,
+          k: calculatedK,
+        };
+
+        singleData.push(dataPoint);
+        updateSingleDataTable();
+        updateSingleChart();
+      }
+
+      function clearSingleData() {
+        singleData.length = 0; // Clear the array
+        updateSingleDataTable();
+        updateSingleChart();
+      }
+
+      function updateSingleDataTable() {
+        const tableBody = document.querySelector("#single-data-table tbody");
+        tableBody.innerHTML = "";
+
+        singleData.forEach((point) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+                    <td>${point.trial}</td>
+                    <td>${point.mass.toFixed(2)}</td>
+                    <td>${point.force.toFixed(2)}</td>
+                    <td>${point.extension.toFixed(3)}</td>
+                    <td>${point.k.toFixed(2)}</td>
+                `;
+          tableBody.appendChild(row);
+        });
+      }
+
+      function initializeSingleChart() {
+        const ctx = document.getElementById("single-graph").getContext("2d");
+        singleChart = new Chart(ctx, {
+          type: "scatter",
+          data: {
+            datasets: [
+              {
+                label: "Force vs. Extension",
+                backgroundColor: "rgba(75, 192, 192, 1)",
+                borderColor: "rgba(75, 192, 192, 1)",
+                data: [],
+              },
+            ],
+          },
+          options: {
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Extension (m)",
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: "Force (N)",
+                },
+              },
+            },
+            plugins: {
+              legend: {
+                display: true,
+              },
+            },
+          },
+        });
+      }
+
+      function updateSingleChart() {
+        // Map data points for chart
+        const chartData = singleData.map((point) => {
+          return {
+            x: point.extension,
+            y: point.force,
+          };
+        });
+
+        // Add linear regression if we have enough points
+        if (singleData.length >= 2) {
+          // Calculate best-fit line
+          let sumX = 0,
+            sumY = 0,
+            sumXY = 0,
+            sumX2 = 0;
+          const n = singleData.length;
+
+          singleData.forEach((point) => {
+            sumX += point.extension;
+            sumY += point.force;
+            sumXY += point.extension * point.force;
+            sumX2 += point.extension * point.extension;
+          });
+
+          const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+          const intercept = (sumY - slope * sumX) / n;
+
+          // Create line data points
+          const minX = Math.min(...singleData.map((p) => p.extension));
+          const maxX = Math.max(...singleData.map((p) => p.extension));
+
+          // Add best fit line as a second dataset
+          if (singleChart.data.datasets.length < 2) {
+            singleChart.data.datasets.push({
+              label: `Best Fit Line (k = ${slope.toFixed(2)} N/m)`,
+              backgroundColor: "rgba(255, 99, 132, 1)",
+              borderColor: "rgba(255, 99, 132, 1)",
+              data: [
+                { x: 0, y: intercept },
+                { x: maxX * 1.1, y: slope * (maxX * 1.1) + intercept },
+              ],
+              type: "line",
+              pointRadius: 0,
+            });
+          } else {
+            singleChart.data.datasets[1].data = [
+              { x: 0, y: intercept },
+              { x: maxX * 1.1, y: slope * (maxX * 1.1) + intercept },
+            ];
+            singleChart.data.datasets[1].label = `Best Fit Line (k = ${slope.toFixed(
+              2
+            )} N/m)`;
+          }
+        }
+
+        // Update chart with new data
+        singleChart.data.datasets[0].data = chartData;
+        singleChart.update();
+      }
+
+      // SERIES SPRINGS FUNCTIONS
+      function initializeSeriesSprings() {
+        const spring1 = document.getElementById("series-spring1");
+        const spring2 = document.getElementById("series-spring2");
+        const weight = document.getElementById("series-weight");
+
+        const springType1 = document.getElementById(
+          "series-spring1-type"
+        ).value;
+        const springType2 = document.getElementById(
+          "series-spring2-type"
+        ).value;
+        const k1 = springConstants[springType1];
+        const k2 = springConstants[springType2];
+
+        spring1.style.height = `${naturalLengths.series * 1000}px`;
+        spring1.style.top = "20px";
+
+        spring2.style.height = `${naturalLengths.series * 1000}px`;
+        spring2.style.top = `${20 + naturalLengths.series * 1000}px`;
+
+        const weightTop = 20 + naturalLengths.series * 2 * 1000;
+        weight.style.top = `${weightTop}px`;
+
+        document.getElementById("series-k1").textContent = k1.toFixed(2);
+        document.getElementById("series-k2").textContent = k2.toFixed(2);
+        document.getElementById("series-extension").textContent = "0.00";
+        document.getElementById("series-force").textContent = "0.00";
+        document.getElementById("series-equivalent-k").textContent = "0.00";
+
+        // Calculate theoretical equivalent spring constant
+        const theoreticalKeq = 1 / (1 / k1 + 1 / k2);
+        document.getElementById("series-theoretical-k").textContent =
+          theoreticalKeq.toFixed(2);
+      }
+
+      function updateSeriesSprings() {
+        initializeSeriesSprings();
+      }
+
+      function updateSeriesMassDisplay() {
+        const massValue = document.getElementById("series-mass").value;
+        document.getElementById("series-mass-display").value = massValue;
+        document.getElementById(
+          "series-weight"
+        ).textContent = `${massValue} kg`;
+      }
+
+      function updateSeriesMassSlider() {
+        const massValue = document.getElementById("series-mass-display").value;
+        document.getElementById("series-mass").value = massValue;
+        document.getElementById(
+          "series-weight"
+        ).textContent = `${massValue} kg`;
+      }
+
+      function updateSeriesGravityDisplay() {
+        const gravityValue = document.getElementById("series-gravity").value;
+        document.getElementById("series-gravity-display").value = gravityValue;
+      }
+
+      function updateSeriesGravitySlider() {
+        const gravityValue = document.getElementById(
+          "series-gravity-display"
+        ).value;
+        document.getElementById("series-gravity").value = gravityValue;
+      }
+
+      function startSeriesSimulation() {
+        // Cancel any existing animation
+        if (seriesAnimationId) {
+          cancelAnimationFrame(seriesAnimationId);
+        }
+
+        const springType1 = document.getElementById(
+          "series-spring1-type"
+        ).value;
+        const springType2 = document.getElementById(
+          "series-spring2-type"
+        ).value;
+        const k1 = springConstants[springType1];
+        const k2 = springConstants[springType2];
+        const mass = parseFloat(document.getElementById("series-mass").value);
+        const gravity = parseFloat(
+          document.getElementById("series-gravity").value
+        );
+
+        const spring1 = document.getElementById("series-spring1");
+        const spring2 = document.getElementById("series-spring2");
+        const weight = document.getElementById("series-weight");
+
+        // Calculate force
+        const force = mass * gravity;
+
+        // For springs in series:
+        // Force is same in both springs, but extension differs
+        // x1 = F/k1, x2 = F/k2, xtotal = x1 + x2
+        const extension1 = force / k1;
+        const extension2 = force / k2;
+        const totalExtension = extension1 + extension2;
+
+        // Calculate equivalent spring constant
+        const keq = force / totalExtension;
+
+        // Calculate theoretical value
+        const theoreticalKeq = 1 / (1 / k1 + 1 / k2);
+
+        // Set the target heights for animation
+        const targetSpring1Height = (naturalLengths.series + extension1) * 1000;
+        const targetSpring2Height = (naturalLengths.series + extension2) * 1000;
+        const targetWeightPosition =
+          20 + targetSpring1Height + targetSpring2Height;
+
+        // Animate the springs and weight
+        let startTime = null;
+        const animationDuration = 1500; // 1.5 seconds
+
+        function animateSeriesSprings(timestamp) {
+          if (!startTime) startTime = timestamp;
+          const elapsed = timestamp - startTime;
+          const progress = Math.min(elapsed / animationDuration, 1);
+
+          // Apply easing function for realistic spring motion
+          const easedProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
+
+          // Calculate intermediate heights/positions
+          const currentSpring1Height =
+            naturalLengths.series * 1000 +
+            (targetSpring1Height - naturalLengths.series * 1000) *
+              easedProgress;
+          const currentSpring2Height =
+            naturalLengths.series * 1000 +
+            (targetSpring2Height - naturalLengths.series * 1000) *
+              easedProgress;
+
+          // Position of second spring depends on first spring's current length
+          const currentSpring2Position = 20 + currentSpring1Height;
+          const currentWeightPosition =
+            currentSpring2Position + currentSpring2Height;
+
+          // Apply to elements
+          spring1.style.height = `${currentSpring1Height}px`;
+          spring2.style.height = `${currentSpring2Height}px`;
+          spring2.style.top = `${currentSpring2Position}px`;
+          weight.style.top = `${currentWeightPosition}px`;
+
+          // Calculate current extensions
+          const currentExtension1 =
+            (currentSpring1Height - naturalLengths.series * 1000) / 1000;
+          const currentExtension2 =
+            (currentSpring2Height - naturalLengths.series * 1000) / 1000;
+          const currentTotalExtension = currentExtension1 + currentExtension2;
+
+          // Update results in real-time
+          document.getElementById("series-extension").textContent =
+            currentTotalExtension.toFixed(2);
+          document.getElementById("series-force").textContent =
+            force.toFixed(2);
+          document.getElementById("series-equivalent-k").textContent = (
+            force / currentTotalExtension
+          ).toFixed(2);
+          document.getElementById("series-theoretical-k").textContent =
+            theoreticalKeq.toFixed(2);
+
+          // Continue animation if not complete
+          if (progress < 1) {
+            seriesAnimationId = requestAnimationFrame(animateSeriesSprings);
+          } else {
+            // Animation complete - final update
+            document.getElementById("series-extension").textContent =
+              totalExtension.toFixed(2);
+            document.getElementById("series-equivalent-k").textContent =
+              keq.toFixed(2);
+          }
+        }
+
+        // Start animation
+        seriesAnimationId = requestAnimationFrame(animateSeriesSprings);
+      }
+
+      function resetSeriesSimulation() {
+        if (seriesAnimationId) {
+          cancelAnimationFrame(seriesAnimationId);
+        }
+        initializeSeriesSprings();
+      }
+
+      function addSeriesDataPoint() {
+        const springType1 = document.getElementById(
+          "series-spring1-type"
+        ).value;
+        const springType2 = document.getElementById(
+          "series-spring2-type"
+        ).value;
+        const k1 = springConstants[springType1];
+        const k2 = springConstants[springType2];
+        const mass = parseFloat(document.getElementById("series-mass").value);
+
+        const measuredKeq = parseFloat(
+          document.getElementById("series-equivalent-k").textContent
+        );
+        const theoreticalKeq = 1 / (1 / k1 + 1 / k2);
+
+        const dataPoint = {
+          trial: seriesData.length + 1,
+          mass: mass,
+          k1: k1,
+          k2: k2,
+          measuredKeq: measuredKeq,
+          theoreticalKeq: theoreticalKeq,
+        };
+
+        seriesData.push(dataPoint);
+        updateSeriesDataTable();
+      }
+
+      function clearSeriesData() {
+        seriesData.length = 0; // Clear the array
+        updateSeriesDataTable();
+      }
+
+      function updateSeriesDataTable() {
+        const tableBody = document.querySelector("#series-data-table tbody");
+        tableBody.innerHTML = "";
+
+        seriesData.forEach((point) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+                    <td>${point.trial}</td>
+                    <td>${point.mass.toFixed(2)}</td>
+                    <td>${point.k1.toFixed(2)}</td>
+                    <td>${point.k2.toFixed(2)}</td>
+                    <td>${point.measuredKeq.toFixed(2)}</td>
+                    <td>${point.theoreticalKeq.toFixed(2)}</td>
+                `;
+          tableBody.appendChild(row);
+        });
+      }
+
+      // PARALLEL SPRINGS FUNCTIONS
+      function initializeParallelSprings() {
+        const spring1 = document.getElementById("parallel-spring1");
+        const spring2 = document.getElementById("parallel-spring2");
+        const weight = document.getElementById("parallel-weight");
+
+        const springType1 = document.getElementById(
+          "parallel-spring1-type"
+        ).value;
+        const springType2 = document.getElementById(
+          "parallel-spring2-type"
+        ).value;
+        const k1 = springConstants[springType1];
+        const k2 = springConstants[springType2];
+
+        spring1.style.height = `${naturalLengths.parallel * 1000}px`;
+        spring1.style.top = "20px";
+
+        spring2.style.height = `${naturalLengths.parallel * 1000}px`;
+        spring2.style.top = "20px";
+
+        const weightTop = 20 + naturalLengths.parallel * 1000;
+        weight.style.top = `${weightTop}px`;
+
+        document.getElementById("parallel-k1").textContent = k1.toFixed(2);
+        document.getElementById("parallel-k2").textContent = k2.toFixed(2);
+        document.getElementById("parallel-extension").textContent = "0.00";
+        document.getElementById("parallel-force").textContent = "0.00";
+        document.getElementById("parallel-equivalent-k").textContent = "0.00";
+
+        // Calculate theoretical equivalent spring constant
+        const theoreticalKeq = k1 + k2;
+        document.getElementById("parallel-theoretical-k").textContent =
+          theoreticalKeq.toFixed(2);
+      }
+
+      function updateParallelSprings() {
+        initializeParallelSprings();
+      }
+
+      function updateParallelMassDisplay() {
+        const massValue = document.getElementById("parallel-mass").value;
+        document.getElementById("parallel-mass-display").value = massValue;
+        document.getElementById(
+          "parallel-weight"
+        ).textContent = `${massValue} kg`;
+      }
+
+      function updateParallelMassSlider() {
+        const massValue = document.getElementById(
+          "parallel-mass-display"
+        ).value;
+        document.getElementById("parallel-mass").value = massValue;
+        document.getElementById(
+          "parallel-weight"
+        ).textContent = `${massValue} kg`;
+      }
+
+      function updateParallelGravityDisplay() {
+        const gravityValue = document.getElementById("parallel-gravity").value;
+        document.getElementById("parallel-gravity-display").value =
+          gravityValue;
+      }
+
+      function updateParallelGravitySlider() {
+        const gravityValue = document.getElementById(
+          "parallel-gravity-display"
+        ).value;
+        document.getElementById("parallel-gravity").value = gravityValue;
+      }
+
+      function startParallelSimulation() {
+        // Cancel any existing animation
+        if (parallelAnimationId) {
+          cancelAnimationFrame(parallelAnimationId);
+        }
+
+        const springType1 = document.getElementById(
+          "parallel-spring1-type"
+        ).value;
+        const springType2 = document.getElementById(
+          "parallel-spring2-type"
+        ).value;
+        const k1 = springConstants[springType1];
+        const k2 = springConstants[springType2];
+        const mass = parseFloat(document.getElementById("parallel-mass").value);
+        const gravity = parseFloat(
+          document.getElementById("parallel-gravity").value
+        );
+
+        const spring1 = document.getElementById("parallel-spring1");
+        const spring2 = document.getElementById("parallel-spring2");
+        const weight = document.getElementById("parallel-weight");
+
+        // Calculate force
+        const force = mass * gravity;
+
+        // For springs in parallel:
+        // Equal extension in both springs
+        // F = F1 + F2 = k1x + k2x = (k1 + k2)x
+        // Therefore, x = F/(k1 + k2)
+        const keq = k1 + k2;
+        const extension = force / keq;
+
+        // Set the target heights for animation
+        const targetSpringHeight = (naturalLengths.parallel + extension) * 1000;
+        const targetWeightPosition = 20 + targetSpringHeight;
+
+        // Animate the springs and weight
+        let startTime = null;
+        const animationDuration = 1000; // 1 second
+
+        function animateParallelSprings(timestamp) {
+          if (!startTime) startTime = timestamp;
+          const elapsed = timestamp - startTime;
+          const progress = Math.min(elapsed / animationDuration, 1);
+
+          // Apply easing function for realistic spring motion
+          const easedProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
+
+          // Calculate intermediate heights/positions
+          const currentSpringHeight =
+            naturalLengths.parallel * 1000 +
+            (targetSpringHeight - naturalLengths.parallel * 1000) *
+              easedProgress;
+          const currentWeightPosition = 20 + currentSpringHeight;
+
+          // Apply to elements
+          spring1.style.height = `${currentSpringHeight}px`;
+          spring2.style.height = `${currentSpringHeight}px`;
+          weight.style.top = `${currentWeightPosition}px`;
+
+          // Calculate current extension
+          const currentExtension =
+            (currentSpringHeight - naturalLengths.parallel * 1000) / 1000;
+
+          // Update results in real-time
+          document.getElementById("parallel-extension").textContent =
+            currentExtension.toFixed(2);
+          document.getElementById("parallel-force").textContent =
+            force.toFixed(2);
+          document.getElementById("parallel-equivalent-k").textContent = (
+            force / currentExtension
+          ).toFixed(2);
+
+          // Continue animation if not complete
+          if (progress < 1) {
+            parallelAnimationId = requestAnimationFrame(animateParallelSprings);
+          } else {
+            // Animation complete - final update
+            document.getElementById("parallel-extension").textContent =
+              extension.toFixed(2);
+            document.getElementById("parallel-equivalent-k").textContent =
+              keq.toFixed(2);
+          }
+        }
+
+        // Start animation
+        parallelAnimationId = requestAnimationFrame(animateParallelSprings);
+      }
+
+      function resetParallelSimulation() {
+        if (parallelAnimationId) {
+          cancelAnimationFrame(parallelAnimationId);
+        }
+        initializeParallelSprings();
+      }
+
+      function addParallelDataPoint() {
+        const springType1 = document.getElementById(
+          "parallel-spring1-type"
+        ).value;
+        const springType2 = document.getElementById(
+          "parallel-spring2-type"
+        ).value;
+        const k1 = springConstants[springType1];
+        const k2 = springConstants[springType2];
+        const mass = parseFloat(document.getElementById("parallel-mass").value);
+
+        const measuredKeq = parseFloat(
+          document.getElementById("parallel-equivalent-k").textContent
+        );
+        const theoreticalKeq = k1 + k2;
+
+        const dataPoint = {
+          trial: parallelData.length + 1,
+          mass: mass,
+          k1: k1,
+          k2: k2,
+          measuredKeq: measuredKeq,
+          theoreticalKeq: theoreticalKeq,
+        };
+
+        parallelData.push(dataPoint);
+        updateParallelDataTable();
+      }
+
+      function clearParallelData() {
+        parallelData.length = 0; // Clear the array
+        updateParallelDataTable();
+      }
+
+      function updateParallelDataTable() {
+        const tableBody = document.querySelector("#parallel-data-table tbody");
+        tableBody.innerHTML = "";
+
+        parallelData.forEach((point) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+                    <td>${point.trial}</td>
+                    <td>${point.mass.toFixed(2)}</td>
+                    <td>${point.k1.toFixed(2)}</td>
+                    <td>${point.k2.toFixed(2)}</td>
+                    <td>${point.measuredKeq.toFixed(2)}</td>
+                    <td>${point.theoreticalKeq.toFixed(2)}</td>
+                `;
+          tableBody.appendChild(row);
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -206,7 +206,8 @@ def index():
     """Serves the home page with links to subjects."""
     logging.info("Serving index page.")
     # Define the subjects for which you have templates
-    subjects = ['physics', 'history', 'geography','chemistry','biology'] # Add 'chemistry', 'biology' when templates exist
+    # subjects = ['physics', 'history', 'geography','chemistry','biology'] # Add 'chemistry', 'biology' when templates exist
+    subjects = ['physics', 'chemistry'] # Add 'chemistry', 'biology' when templates exist
     return render_template('index.html', subjects=subjects)
 
 @app.route('/<subject>')
@@ -439,8 +440,8 @@ def generate_visual_description():
         
         # Inside /generate-visual-description route in app.py
         prompt = f"""
-        Generate a detailed yet easy-to-understand description (around 4-6 sentences) to help a secondary school student visualize the concept or topic of '{topic}'.
-        Focus on imagery, simple analogies, or easy-to-picture scenes. Avoid overly technical jargon but provide enough detail for a good mental picture.
+        Generate a detailed yet easy-to-understand description (around 6-10 sentences) to help a B Tech. engineering college student visualize the concept or topic of '{topic}'.
+        Focus on imagery, analogies, or easy-to-picture scenes. Avoid overly technical jargon but provide enough detail for a good mental picture.
         {'''
         Example for 'Gravity': 'Imagine the Earth like a giant, slightly stretchy trampoline. Anything with mass, like you or an apple, creates a small dip. Things naturally roll 'downhill' into these dips towards the object – that's gravity pulling them in! The bigger the mass, the deeper the dip, the stronger the pull.'
         Example for 'Photosynthesis': 'Think of a tiny solar-powered kitchen inside a plant leaf. It uses sunlight energy, water sucked up by roots, and carbon dioxide from the air to cook up sugary food (glucose) for the plant's energy. As a bonus, it releases the oxygen we breathe as a waste product. This process is vital for life on Earth.'
@@ -1487,7 +1488,7 @@ def get_writing_feedback():
 
         # Use the same detailed prompt as before
         prompt = f"""
-        Act as a helpful and encouraging secondary school teacher reviewing a student's written answer.
+        Act as a helpful and encouraging B Tech. College school faculty reviewing a student's written answer.
         Provide constructive feedback on the student's answer below, considering the provided question or topic.
 
         **Question/Topic:**
@@ -1877,6 +1878,235 @@ def generate_flashcards():
         except AttributeError: pass
         return jsonify({"error": f"An internal error occurred during flashcard generation.{block_reason_msg} Details: {str(e)}"}), 500
 # === END NEW ROUTE ===
+
+# === NEW ROUTE for Chatbot Messages ===
+@app.route('/chatbot-message', methods=['POST'])
+@login_required # Optional: require login to use chatbot, or remove for public access
+def chatbot_message():
+    """Handles messages sent to the AI chatbot and returns a response."""
+    logging.info(f"Received request for /chatbot-message from user: {current_user.email if current_user.is_authenticated else 'Guest'}")
+    if not request.is_json:
+        logging.error("Request is not JSON for chatbot")
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    user_message = data.get('message')
+
+    if not user_message or not isinstance(user_message, str) or not user_message.strip():
+        logging.error("Missing or invalid 'message' for chatbot")
+        return jsonify({"reply": "Sorry, I didn't understand that. Please type a message."}), 400 # Send a reply even for empty
+
+    try:
+        logging.info(f"User message to chatbot: {user_message}")
+
+        # Attempt to get current subject from session or a hidden field if needed for context
+        # For now, a general prompt.
+        # You could enhance this by passing subject context if the chatbot is on a subject page.
+        # current_subject = session.get('current_subject_for_chatbot', 'general topics')
+
+        # General conversational prompt
+        # For a more robust chatbot, you'd manage conversation history.
+        # This is a stateless (single-turn) version for simplicity.
+        prompt = f"""
+        You are a friendly and helpful AI assistant for a student learning platform.
+        The student said: "{user_message}"
+
+        Respond concisely and helpfully. If the question is complex or outside your general knowledge,
+        politely state that you can help with general queries or guide them to specific features on the platform.
+        Keep your answers relatively short and suitable for a chat interface.
+        If asked about a specific subject and you know the student is on a page for Physics, Chemistry, Biology, History, or Geography,
+        try to tailor your answer slightly if appropriate, but primarily act as a general helper.
+        Do not make up facts. If you don't know, say so.
+        """
+
+        # If you want to maintain conversation history (more advanced):
+        # chat_session = model.start_chat(history=[...previous messages...])
+        # response = chat_session.send_message(prompt)
+
+        # For stateless:
+        response = model.generate_content(prompt)
+
+        ai_reply = ""
+        if response.parts: ai_reply = response.parts[0].text
+        elif hasattr(response, 'text'): ai_reply = response.text
+
+        if not ai_reply.strip():
+             if response.prompt_feedback and response.prompt_feedback.block_reason:
+                 block_reason = response.prompt_feedback.block_reason
+                 logging.warning(f"Chatbot reply generation blocked: {block_reason}")
+                 ai_reply = f"Sorry, I can't respond to that due to content restrictions ({block_reason})."
+             else:
+                 logging.warning("Chatbot AI reply is empty.")
+                 ai_reply = "I'm not sure how to respond to that right now. Can you try asking differently?"
+
+        logging.info(f"AI chatbot reply: {ai_reply[:100]}...") # Log truncated reply
+        return jsonify({"reply": ai_reply})
+
+    except Exception as e:
+        logging.exception(f"Error during chatbot message processing: {e}")
+        return jsonify({"reply": "Sorry, I encountered an error and can't respond right now."}), 500
+# === END NEW ROUTE ===
+
+# # === NEW ROUTE for Animation Conceptual Link ===
+# @app.route('/get-animation-concept-link', methods=['POST'])
+# @login_required
+# def get_animation_concept_link():
+#     """
+#     Generates a conceptual link between a pre-defined simple animation
+#     and a user-provided physics concept.
+#     """
+#     logging.info(f"Received request for /get-animation-concept-link from user: {current_user.email}")
+#     if not request.is_json:
+#         return jsonify({"error": "Request must be JSON"}), 400
+
+#     data = request.get_json()
+#     user_concept = data.get('concept')
+
+#     if not user_concept or not isinstance(user_concept, str) or not user_concept.strip():
+#         return jsonify({"error": "Please provide the physics concept."}), 400
+
+#     # Describe the fixed animation we will have on the frontend
+#     # For this example, let's assume a simple oscillating wave animation.
+#     fixed_animation_description = (
+#         "a simple 2D animation of an oscillating sine wave moving across the screen, "
+#         "or alternatively, a group of particles exhibiting wave-like motion or simple harmonic motion."
+#     )
+
+#     try:
+#         logging.info(f"Generating conceptual link for: {user_concept} with animation: {fixed_animation_description}")
+
+#         prompt = f"""
+#         You are a physics educator.
+#         A student is observing a simple fixed animation described as: "{fixed_animation_description}".
+#         The student has entered the physics concept: "{user_concept}".
+
+#         Your task is to:
+#         1.  Briefly explain how the described simple animation (e.g., oscillating wave, particle oscillation) could be conceptually related to the student's topic: "{user_concept}". Find a plausible link, even if abstract.
+#         2.  If the direct link is weak, you can additionally suggest how a more specific or advanced animation for "{user_concept}" might look or what key aspects it would visualize.
+#         3.  Keep the explanation concise (3-5 sentences), clear, and suitable for a secondary school or early university student.
+#         4.  If the concept "{user_concept}" is completely unrelated and no conceptual bridge can be reasonably made to the described simple animation, politely state that and briefly describe what kind of animation would be suitable for "{user_concept}".
+
+#         Example for fixed animation="oscillating wave" and user_concept="Sound Waves":
+#         "The oscillating wave you see can represent how sound travels! Sound waves are vibrations that move through a medium, like air. The animation's peaks and troughs can be thought of as the compressions and rarefactions of air molecules as a sound wave passes. A more specific animation for sound might show these particle compressions directly."
+
+#         Example for fixed animation="oscillating wave" and user_concept="Electron Orbitals":
+#         "While the simple wave animation isn't a direct depiction of electron orbitals, you can think about the wave-like nature of electrons. Quantum mechanics describes electrons not as tiny billiard balls, but as probability waves. The animation hints at this wave behavior. A true visualization of an s-orbital would be a spherical cloud, and p-orbitals would be dumbbell-shaped, representing regions where an electron is likely to be found."
+
+#         Now, provide the conceptual link or visualization ideas for the concept "{user_concept}" in relation to the described simple animation:
+#         """
+
+#         response = model.generate_content(prompt)
+#         explanation_text = response.text if hasattr(response, 'text') else (response.parts[0].text if response.parts else "")
+
+
+#         if not explanation_text.strip():
+#              if response.prompt_feedback and response.prompt_feedback.block_reason:
+#                  block_reason = response.prompt_feedback.block_reason
+#                  logging.warning(f"Animation link generation blocked: {block_reason}")
+#                  return jsonify({"error": f"Content blocked: {block_reason}. Try rephrasing."}), 400
+#              else:
+#                  logging.warning("Generated animation link explanation is empty.")
+#                  return jsonify({"explanation": "Sorry, I couldn't generate a conceptual link for this concept at the moment."}), 200
+
+#         logging.info("Conceptual link for animation generated successfully.")
+#         return jsonify({"explanation": explanation_text})
+
+#     except Exception as e:
+#         logging.exception(f"Error during animation link generation for user {current_user.email}: {e}")
+#         # ... (Standard block reason checking logic if needed) ...
+#         return jsonify({"error": f"An internal error occurred: {str(e)}"}), 500
+# # === END NEW ROUTE ===
+
+# === UPDATED ROUTE for Animation Conceptual Link ===
+@app.route('/get-animation-concept-link', methods=['POST'])
+@login_required
+def get_animation_concept_link():
+    """
+    Generates a conceptual link and chooses an appropriate animation type.
+    """
+    logging.info(f"Received request for /get-animation-concept-link from user: {current_user.email}")
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    user_concept = data.get('concept')
+
+    if not user_concept or not isinstance(user_concept, str) or not user_concept.strip():
+        return jsonify({"error": "Please provide the physics concept."}), 400
+
+    fixed_animation_description = (
+        "a simple 2D animation of an oscillating sine wave moving across the screen, "
+        "or alternatively, a group of particles exhibiting wave-like motion or simple harmonic motion."
+    )
+
+    def match_concept_to_animation_type(concept):
+        concept = concept.lower()
+        if "wave" in concept:
+            return "wave"
+        elif "projectile" in concept:
+            return "projectile"
+        elif "pendulum" in concept:
+            return "pendulum"
+        elif "circular motion" in concept:
+            return "circular"
+        elif "oscillation" in concept or "harmonic" in concept:
+            return "harmonic"
+        else:
+            return "generic"
+
+    try:
+        logging.info(f"Generating conceptual link for: {user_concept}")
+
+        prompt = f"""
+        You are a physics educator.
+        A student is observing a simple fixed animation described as: "{fixed_animation_description}".
+        The student has entered the physics concept: "{user_concept}".
+
+        Your task is to:
+        1. Briefly explain how the described simple animation (e.g., oscillating wave) relates to "{user_concept}".
+        2. If the connection is weak, suggest how a more appropriate animation for "{user_concept}" might look.
+        3. Keep it concise (3-5 sentences) and clear for a high school or early college student.
+        """
+
+        response = model.generate_content(prompt)
+        explanation_text = response.text.strip() if hasattr(response, 'text') else ""
+
+        animation_type = match_concept_to_animation_type(user_concept)
+
+        if not explanation_text:
+            logging.warning("Empty explanation generated.")
+            return jsonify({"explanation": "Sorry, I couldn't generate a conceptual link."}), 200
+
+        logging.info("Conceptual link generated.")
+        return jsonify({
+            "explanation": explanation_text,
+            "animation_type": animation_type
+        })
+
+    except Exception as e:
+        logging.exception(f"Error during concept animation generation: {e}")
+        return jsonify({"error": f"Internal error: {str(e)}"}), 500
+# === END UPDATED ROUTE ===
+
+# @app.route('/torsional_final.html')
+# def torsional_sim():
+#     return render_template('torsional_final.html')
+
+# Generic route for all simulations
+@app.route("/simulation/<sim_name>")
+def load_simulation(sim_name):
+    allowed_pages = {
+        "torsional-pendulum": "torsional_pendulum.html",
+        "spring-constant": "spring_constant.html",
+        "laser-diffraction": "laser_diffraction.html",
+        "hall-effectt": "hall_effect.html",
+        "copper-brass": "copperinbrass.html"
+    }
+
+    if sim_name in allowed_pages:
+        return render_template(allowed_pages[sim_name])
+    else:
+        return "Simulation not found", 404
 
 # Add before if __name__ == '__main__': block in app.py
 

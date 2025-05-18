@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Copper in Brass Iodometric Titration Simulation</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f0f5f9;
+        color: #333;
+      }
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+      }
+      h1,
+      h2,
+      h3 {
+        color: #2c3e50;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 10px;
+      }
+      .experiment-section {
+        margin-bottom: 30px;
+      }
+      .steps {
+        margin-bottom: 20px;
+      }
+      .step {
+        margin-bottom: 10px;
+        padding: 10px;
+        background-color: #ecf0f1;
+        border-radius: 5px;
+      }
+      .step.active {
+        background-color: #d4e6f1;
+        border-left: 5px solid #3498db;
+      }
+      .step.completed {
+        background-color: #d5f5e3;
+        border-left: 5px solid #2ecc71;
+      }
+      .controls {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+      }
+      button {
+        padding: 10px 15px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #2980b9;
+      }
+      button:disabled {
+        background-color: #95a5a6;
+        cursor: not-allowed;
+      }
+      .input-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .simulation-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 20px 0;
+      }
+      .beaker {
+        position: relative;
+        width: 150px;
+        height: 180px;
+        border: 4px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 20px 20px;
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+      .solution {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        height: 0%;
+        transition: height 1s, background-color 1s;
+      }
+      .burette {
+        position: relative;
+        width: 40px;
+        height: 200px;
+        background-color: #f5f5f5;
+        border: 2px solid #ddd;
+        border-radius: 5px 5px 0 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .burette-solution {
+        position: absolute;
+        top: 0;
+        width: 80%;
+        height: 80%;
+        background-color: #f39c12;
+        transition: height 1s;
+      }
+      .burette-tip {
+        width: 10px;
+        height: 20px;
+        background-color: #ddd;
+        position: absolute;
+        bottom: -20px;
+        border-radius: 0 0 5px 5px;
+      }
+      .drop {
+        width: 6px;
+        height: 6px;
+        background-color: #f39c12;
+        border-radius: 50%;
+        position: absolute;
+        display: none;
+        animation: dropFall 1s linear;
+      }
+      .equipment {
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        gap: 80px;
+      }
+      .calculation {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 20px;
+      }
+      .result {
+        font-weight: bold;
+        color: #2c3e50;
+        font-size: 1.1rem;
+        margin-top: 10px;
+      }
+      .hidden {
+        display: none;
+      }
+      .indicators {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+      }
+      .indicator {
+        padding: 5px 10px;
+        border-radius: 5px;
+        background-color: #eee;
+        cursor: pointer;
+      }
+      .indicator.active {
+        background-color: #3498db;
+        color: white;
+      }
+      .description {
+        margin-bottom: 20px;
+        padding: 10px;
+        background-color: #e8f4fc;
+        border-radius: 5px;
+      }
+      .info-box {
+        background-color: #e8f4fc;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+      }
+      .error {
+        color: #e74c3c;
+        font-weight: bold;
+        margin-top: 5px;
+      }
+      .success {
+        color: #2ecc71;
+        font-weight: bold;
+        margin-top: 5px;
+      }
+      @keyframes dropFall {
+        0% {
+          top: 0;
+        }
+        100% {
+          top: 220px;
+        }
+      }
+      .progress-bar {
+        width: 100%;
+        height: 20px;
+        background-color: #ecf0f1;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        overflow: hidden;
+      }
+      .progress {
+        height: 100%;
+        background-color: #3498db;
+        border-radius: 10px;
+        width: 0%;
+        transition: width 0.3s;
+      }
+      #titration-curve {
+        width: 100%;
+        height: 250px;
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        background-color: white;
+      }
+      .reaction-equation {
+        font-family: monospace;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 15px 0;
+        overflow-x: auto;
+      }
+      .note {
+        font-style: italic;
+        color: #7f8c8d;
+        margin: 10px 0;
+      }
+      .formula {
+        font-family: monospace;
+        background-color: #f5f5f5;
+        padding: 5px;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>
+          Estimation of Percentage of Copper in Brass by Iodometric Titration
+        </h1>
+        <p>A virtual laboratory simulation for chemistry students</p>
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress" id="progressBar"></div>
+      </div>
+
+      <div class="experiment-section">
+        <h2>Experiment Overview</h2>
+        <div class="info-box">
+          <p>
+            In this simulation, you will determine the percentage of copper in a
+            brass sample using iodometric titration. The procedure involves:
+          </p>
+          <ol>
+            <li>Dissolving the brass sample in nitric acid</li>
+            <li>Neutralizing excess acid with ammonia solution</li>
+            <li>Adding acetic acid and potassium iodide</li>
+            <li>
+              Titrating the liberated iodine with sodium thiosulfate solution
+            </li>
+            <li>Using starch indicator near the endpoint</li>
+            <li>Calculating the percentage of copper in the brass sample</li>
+          </ol>
+          <p>The chemical equations involved are:</p>
+          <div class="reaction-equation">Cu²⁺ + 2I⁻ → CuI(s) + ½I₂(aq)</div>
+          <div class="reaction-equation">I₂ + 2S₂O₃²⁻ → 2I⁻ + S₄O₆²⁻</div>
+        </div>
+      </div>
+
+      <div id="section-1" class="experiment-section">
+        <h2>Step 1: Sample Preparation</h2>
+        <div class="description">
+          <p>
+            First, we need to weigh the brass sample accurately and prepare it
+            for analysis.
+          </p>
+        </div>
+        <div class="input-group">
+          <label for="brass-weight">Enter weight of brass sample (g):</label>
+          <input
+            type="number"
+            id="brass-weight"
+            min="0.1"
+            max="2.0"
+            step="0.01"
+            placeholder="0.5-1.0 g recommended"
+          />
+          <div class="note">Typical lab values range from 0.5 to 1.0 g</div>
+        </div>
+        <div class="simulation-area">
+          <img src="/api/placeholder/150/120" alt="Brass sample" />
+          <p id="sample-status">Sample ready for weighing</p>
+        </div>
+        <button id="next-1">Weigh Sample and Continue</button>
+        <div id="error-1" class="error hidden"></div>
+      </div>
+
+      <div id="section-2" class="experiment-section hidden">
+        <h2>Step 2: Dissolution of Brass Sample</h2>
+        <div class="description">
+          <p>
+            Now we will dissolve the brass sample in concentrated nitric acid
+            (HNO₃). This process will oxidize copper to Cu²⁺ ions.
+          </p>
+          <div class="reaction-equation">
+            Cu(s) + 4HNO₃(aq) → Cu(NO₃)₂(aq) + 2NO₂(g) + 2H₂O(l)
+          </div>
+          <p class="note">
+            In a real lab, this should be done in a fume hood due to toxic NO₂
+            gas formation.
+          </p>
+        </div>
+        <div class="input-group">
+          <label for="acid-volume"
+            >Volume of concentrated HNO₃ to add (mL):</label
+          >
+          <input
+            type="number"
+            id="acid-volume"
+            min="5"
+            max="20"
+            step="0.5"
+            placeholder="10 mL recommended"
+          />
+        </div>
+        <div class="simulation-area">
+          <div class="beaker">
+            <div
+              class="solution"
+              id="acid-solution"
+              style="height: 0%; background-color: #a2d9ce"
+            ></div>
+          </div>
+          <p id="dissolution-status">Ready to add nitric acid</p>
+        </div>
+        <button id="add-acid">Add Nitric Acid</button>
+        <button id="next-2" disabled>Complete Dissolution and Continue</button>
+        <div id="error-2" class="error hidden"></div>
+      </div>
+
+      <div id="section-3" class="experiment-section hidden">
+        <h2>Step 3: Neutralization with Ammonia</h2>
+        <div class="description">
+          <p>
+            After dissolution, we need to neutralize excess acid with ammonia
+            solution. We add ammonia until a slight blue color persists, then
+            acidify with acetic acid.
+          </p>
+        </div>
+        <div class="input-group">
+          <label for="ammonia-volume"
+            >Volume of concentrated NH₃ to add (mL):</label
+          >
+          <input
+            type="number"
+            id="ammonia-volume"
+            min="5"
+            max="30"
+            step="0.5"
+            placeholder="15-20 mL recommended"
+          />
+        </div>
+        <div class="simulation-area">
+          <div class="beaker">
+            <div
+              class="solution"
+              id="neutralized-solution"
+              style="height: 30%; background-color: #48c9b0"
+            ></div>
+          </div>
+          <p id="neutralization-status">Ready to neutralize with ammonia</p>
+        </div>
+        <button id="add-ammonia">Add Ammonia</button>
+        <button id="next-3" disabled>
+          Complete Neutralization and Continue
+        </button>
+        <div id="error-3" class="error hidden"></div>
+      </div>
+
+      <div id="section-4" class="experiment-section hidden">
+        <h2>Step 4: Addition of Acetic Acid and Potassium Iodide</h2>
+        <div class="description">
+          <p>
+            Now we acidify the solution with acetic acid and add potassium
+            iodide (KI). The Cu²⁺ ions will react with I⁻ ions to produce CuI
+            precipitate and I₂.
+          </p>
+          <div class="reaction-equation">2Cu²⁺ + 4I⁻ → 2CuI(s) + I₂(aq)</div>
+        </div>
+        <div class="input-group">
+          <label for="acetic-volume"
+            >Volume of glacial acetic acid to add (mL):</label
+          >
+          <input
+            type="number"
+            id="acetic-volume"
+            min="1"
+            max="10"
+            step="0.5"
+            placeholder="5 mL recommended"
+          />
+        </div>
+        <div class="input-group">
+          <label for="ki-mass">Mass of potassium iodide (KI) to add (g):</label>
+          <input
+            type="number"
+            id="ki-mass"
+            min="1"
+            max="10"
+            step="0.5"
+            placeholder="3 g recommended"
+          />
+        </div>
+        <div class="simulation-area">
+          <div class="beaker">
+            <div
+              class="solution"
+              id="iodide-solution"
+              style="height: 50%; background-color: #5dade2"
+            ></div>
+          </div>
+          <p id="iodide-status">Ready to add reagents</p>
+        </div>
+        <button id="add-reagents">Add Reagents</button>
+        <button id="next-4" disabled>Continue to Titration</button>
+        <div id="error-4" class="error hidden"></div>
+      </div>
+
+      <div id="section-5" class="experiment-section hidden">
+        <h2>Step 5: Titration with Sodium Thiosulfate</h2>
+        <div class="description">
+          <p>
+            Now we will titrate the liberated iodine with standard sodium
+            thiosulfate solution. The reaction is:
+          </p>
+          <div class="reaction-equation">I₂ + 2Na₂S₂O₃ → 2NaI + Na₂S₄O₆</div>
+          <p>
+            Near the endpoint, we add starch indicator, which forms a deep blue
+            complex with iodine. The endpoint is reached when the blue color
+            disappears.
+          </p>
+        </div>
+        <div class="input-group">
+          <label for="thiosulfate-concentration"
+            >Concentration of Na₂S₂O₃ solution (M):</label
+          >
+          <input
+            type="number"
+            id="thiosulfate-concentration"
+            min="0.01"
+            max="0.1"
+            step="0.005"
+            value="0.05"
+            placeholder="Typically 0.05 M"
+          />
+        </div>
+        <div class="simulation-area">
+          <div class="indicators">
+            <div class="indicator" id="no-indicator">No Indicator</div>
+            <div class="indicator" id="add-starch">Add Starch</div>
+          </div>
+          <div class="equipment">
+            <div class="burette">
+              <div class="burette-solution" id="thiosulfate-level"></div>
+              <div class="burette-tip"></div>
+              <div class="drop" id="thiosulfate-drop"></div>
+            </div>
+            <div class="beaker">
+              <div
+                class="solution"
+                id="titration-solution"
+                style="height: 70%; background-color: #f5b041"
+              ></div>
+            </div>
+          </div>
+          <p id="titration-status">Ready to begin titration</p>
+          <div
+            id="titration-volume"
+            style="margin-top: 10px; font-weight: bold"
+          >
+            Volume added: 0.00 mL
+          </div>
+        </div>
+        <div class="controls">
+          <button id="add-drop">Add 0.5 mL</button>
+          <button id="add-starch-btn">Add Starch Indicator</button>
+          <button id="finish-titration" disabled>Complete Titration</button>
+        </div>
+        <div id="titration-curve"></div>
+        <div id="error-5" class="error hidden"></div>
+      </div>
+
+      <div id="section-6" class="experiment-section hidden">
+        <h2>Step 6: Calculations and Results</h2>
+        <div class="description">
+          <p>
+            Now we will calculate the percentage of copper in the brass sample
+            based on our titration results.
+          </p>
+        </div>
+        <div class="calculation">
+          <h3>Calculation Method</h3>
+          <p>From the balanced equations:</p>
+          <p>2Cu²⁺ + 4I⁻ → 2CuI(s) + I₂</p>
+          <p>I₂ + 2S₂O₃²⁻ → 2I⁻ + S₄O₆²⁻</p>
+          <p>We can derive:</p>
+          <p>1 mol Cu²⁺ ≡ ½ mol I₂ ≡ 1 mol S₂O₃²⁻</p>
+          <p>Therefore:</p>
+          <div class="formula">Moles of Cu = Moles of Na₂S₂O₃ consumed</div>
+          <div class="formula">
+            % Cu = (Moles of Cu × Atomic weight of Cu × 100) / Weight of brass
+            sample
+          </div>
+          <div class="formula">% Cu = (V × M × 63.55 × 100) / W</div>
+          <p>Where:</p>
+          <ul>
+            <li>V = Volume of Na₂S₂O₃ solution (L)</li>
+            <li>M = Molarity of Na₂S₂O₃ solution (mol/L)</li>
+            <li>63.55 = Atomic weight of Cu (g/mol)</li>
+            <li>W = Weight of brass sample (g)</li>
+          </ul>
+        </div>
+        <div class="input-group">
+          <h3>Experimental Data</h3>
+          <p id="data-brass-weight">Weight of brass sample: 0.00 g</p>
+          <p id="data-thiosulfate-conc">Concentration of Na₂S₂O₃: 0.000 M</p>
+          <p id="data-thiosulfate-volume">Volume of Na₂S₂O₃ used: 0.00 mL</p>
+        </div>
+        <div class="calculation">
+          <h3>Result</h3>
+          <div id="calculation-steps"></div>
+          <div class="result" id="result-percentage">
+            Percentage of copper in brass: 0.00%
+          </div>
+          <p class="note">Typical brass contains approximately 60-70% copper</p>
+        </div>
+        <button id="recalculate">Recalculate with Different Values</button>
+        <button id="restart">Start New Experiment</button>
+      </div>
+    </div>
+
+    <script>
+      // Simulation parameters
+      let brassSample = {
+        weight: 0,
+        actualCopperPercentage: 65, // Hidden true value
+        copperMoles: 0,
+        iodineRequired: 0,
+      };
+
+      let titration = {
+        thiosulfateConcentration: 0.05,
+        thiosulfateVolume: 0,
+        currentVolume: 0,
+        starchAdded: false,
+        equivalencePoint: 0,
+        finished: false,
+      };
+
+      let experimentStage = 1;
+      let progressBar = document.getElementById("progressBar");
+
+      // Initialize the experiment
+      function showSection(sectionNumber) {
+        // Hide all sections
+        for (let i = 1; i <= 6; i++) {
+          document.getElementById(`section-${i}`).classList.add("hidden");
+        }
+        // Show the requested section
+        document
+          .getElementById(`section-${sectionNumber}`)
+          .classList.remove("hidden");
+
+        // Update progress bar
+        updateProgress((sectionNumber - 1) * 20);
+      }
+
+      function updateProgress(percentage) {
+        progressBar.style.width = `${percentage}%`;
+      }
+
+      // Step 1: Sample preparation - Fix event listener attachment
+      document.addEventListener("DOMContentLoaded", function () {
+        // Make sure to attach all event listeners once the DOM is fully loaded
+        setupEventListeners();
+        // Initialize the simulation
+        showSection(1);
+      });
+
+      function setupEventListeners() {
+        // Step 1: Sample preparation
+        document
+          .getElementById("next-1")
+          .addEventListener("click", function () {
+            const weightInput = document.getElementById("brass-weight");
+            const weight = parseFloat(weightInput.value);
+            const errorDiv = document.getElementById("error-1");
+
+            if (isNaN(weight) || weight < 0.1 || weight > 2.0) {
+              errorDiv.textContent =
+                "Please enter a valid weight between 0.1g and 2.0g";
+              errorDiv.classList.remove("hidden");
+              return;
+            }
+
+            brassSample.weight = weight;
+
+            // Calculate the true amount of copper (hidden from user)
+            // Add some random variation around the actual value
+            const variation = Math.random() * 10 - 5; // ±5% variation
+            brassSample.actualCopperPercentage = 65 + variation;
+            brassSample.copperMoles =
+              (brassSample.weight * brassSample.actualCopperPercentage) /
+              100 /
+              63.55; // Copper atomic weight
+            brassSample.iodineRequired = brassSample.copperMoles / 2; // From reaction stoichiometry
+
+            // Calculate required thiosulfate volume (with some randomness)
+            titration.equivalencePoint =
+              (brassSample.copperMoles * 1000) /
+              titration.thiosulfateConcentration;
+            titration.equivalencePoint += Math.random() * 2 - 1; // Add ±1 mL randomness
+
+            document.getElementById(
+              "sample-status"
+            ).textContent = `Brass sample weighed: ${weight.toFixed(3)} g`;
+            errorDiv.classList.add("hidden");
+
+            showSection(2);
+          });
+
+        // Attach all other event listeners here too
+        attachRemainingEventListeners();
+      }
+
+      function attachRemainingEventListeners() {
+        // Step 2: Dissolution
+        document
+          .getElementById("add-acid")
+          .addEventListener("click", function () {
+            const acidVolume = parseFloat(
+              document.getElementById("acid-volume").value
+            );
+            const errorDiv = document.getElementById("error-2");
+
+            if (isNaN(acidVolume) || acidVolume < 5 || acidVolume > 20) {
+              errorDiv.textContent =
+                "Please enter a valid acid volume between 5 and 20 mL";
+              errorDiv.classList.remove("hidden");
+              return;
+            }
+
+            errorDiv.classList.add("hidden");
+
+            // Fill the beaker animation
+            const solution = document.getElementById("acid-solution");
+            solution.style.height = "60%";
+
+            setTimeout(() => {
+              solution.style.backgroundColor = "#f5cba7"; // Color change for reaction
+              document.getElementById("dissolution-status").textContent =
+                "Dissolution in progress... NO₂ gas being released";
+
+              setTimeout(() => {
+                document.getElementById("dissolution-status").textContent =
+                  "Dissolution complete. Solution contains Cu²⁺ ions.";
+                document.getElementById("next-2").disabled = false;
+              }, 3000);
+            }, 1000);
+          });
+
+        document
+          .getElementById("next-2")
+          .addEventListener("click", function () {
+            showSection(3);
+          });
+
+        // Step 3: Neutralization with ammonia
+        document
+          .getElementById("add-ammonia")
+          .addEventListener("click", function () {
+            const ammoniaVolume = parseFloat(
+              document.getElementById("ammonia-volume").value
+            );
+            const errorDiv = document.getElementById("error-3");
+
+            if (
+              isNaN(ammoniaVolume) ||
+              ammoniaVolume < 5 ||
+              ammoniaVolume > 30
+            ) {
+              errorDiv.textContent =
+                "Please enter a valid ammonia volume between 5 and 30 mL";
+              errorDiv.classList.remove("hidden");
+              return;
+            }
+
+            errorDiv.classList.add("hidden");
+
+            const solution = document.getElementById("neutralized-solution");
+            solution.style.height = "65%";
+
+            // Simulate color changes
+            setTimeout(() => {
+              if (ammoniaVolume < 10) {
+                solution.style.backgroundColor = "#aed6f1"; // Light blue
+                document.getElementById("neutralization-status").textContent =
+                  "Not enough ammonia added. Add more.";
+              } else if (ammoniaVolume > 25) {
+                solution.style.backgroundColor = "#5dade2"; // Dark blue
+                document.getElementById("neutralization-status").textContent =
+                  "Too much ammonia added. But we can proceed.";
+                document.getElementById("next-3").disabled = false;
+              } else {
+                solution.style.backgroundColor = "#85c1e9"; // Perfect blue
+                document.getElementById("neutralization-status").textContent =
+                  "Perfect! Light blue color indicates optimal neutralization.";
+                document.getElementById("next-3").disabled = false;
+              }
+            }, 1000);
+          });
+
+        document
+          .getElementById("next-3")
+          .addEventListener("click", function () {
+            showSection(4);
+          });
+
+        // Step 4: Addition of acetic acid and KI
+        document
+          .getElementById("add-reagents")
+          .addEventListener("click", function () {
+            const aceticVolume = parseFloat(
+              document.getElementById("acetic-volume").value
+            );
+            const kiMass = parseFloat(document.getElementById("ki-mass").value);
+            const errorDiv = document.getElementById("error-4");
+
+            if (isNaN(aceticVolume) || aceticVolume < 1 || aceticVolume > 10) {
+              errorDiv.textContent =
+                "Please enter a valid acetic acid volume between 1 and 10 mL";
+              errorDiv.classList.remove("hidden");
+              return;
+            }
+
+            if (isNaN(kiMass) || kiMass < 1 || kiMass > 10) {
+              errorDiv.textContent =
+                "Please enter a valid KI mass between 1 and 10 g";
+              errorDiv.classList.remove("hidden");
+              return;
+            }
+
+            errorDiv.classList.add("hidden");
+
+            const solution = document.getElementById("iodide-solution");
+            solution.style.height = "70%";
+
+            setTimeout(() => {
+              // Check if enough KI was added
+              if (kiMass < 2) {
+                solution.style.backgroundColor = "#f7dc6f"; // Light yellow - not enough
+                document.getElementById("iodide-status").textContent =
+                  "Reaction incomplete - not enough KI added";
+              } else {
+                solution.style.backgroundColor = "#f39c12"; // Orange/brown from iodine
+                document.getElementById("iodide-status").textContent =
+                  "Iodine liberated successfully! Ready for titration.";
+                document.getElementById("next-4").disabled = false;
+              }
+            }, 1000);
+          });
+
+        document
+          .getElementById("next-4")
+          .addEventListener("click", function () {
+            showSection(5);
+            // Setup the titration
+            document.getElementById("thiosulfate-level").style.height = "100%";
+            titration.thiosulfateConcentration = parseFloat(
+              document.getElementById("thiosulfate-concentration").value
+            );
+          });
+
+        // Step 5: Titration
+        document
+          .getElementById("add-drop")
+          .addEventListener("click", function () {
+            if (titration.finished) return;
+
+            titration.currentVolume += 0.5; // Add 0.5 mL per drop
+
+            // Update volume display
+            document.getElementById(
+              "titration-volume"
+            ).textContent = `Volume added: ${titration.currentVolume.toFixed(
+              2
+            )} mL`;
+
+            // Update burette level
+            const buretteLevel = document.getElementById("thiosulfate-level");
+            const newHeight = 100 - (titration.currentVolume / 50) * 100;
+            buretteLevel.style.height = `${newHeight}%`;
+
+            // Simulate color change
+            updateTitrationColor();
+
+            // Animate drop
+            const drop = document.getElementById("thiosulfate-drop");
+            drop.style.display = "block";
+            drop.style.animation = "none";
+            void drop.offsetWidth; // Trigger reflow
+            drop.style.animation = "dropFall 1s linear";
+
+            setTimeout(() => {
+              drop.style.display = "none";
+            }, 1000);
+
+            // Check if we're close to endpoint
+            checkTitrationEndpoint();
+          });
+
+        document
+          .getElementById("add-starch-btn")
+          .addEventListener("click", function () {
+            if (titration.starchAdded) return;
+
+            titration.starchAdded = true;
+            document.getElementById("add-starch").classList.add("active");
+            document.getElementById("titration-status").textContent =
+              "Starch indicator added, solution turns deep blue";
+
+            // Update solution color to blue if iodine is still present
+            if (titration.currentVolume < titration.equivalencePoint * 0.9) {
+              document.getElementById(
+                "titration-solution"
+              ).style.backgroundColor = "#2874a6";
+            }
+          });
+
+        document
+          .getElementById("finish-titration")
+          .addEventListener("click", function () {
+            // Proceed to calculation step
+            titration.thiosulfateVolume = titration.currentVolume;
+            showSection(6);
+            displayResults();
+          });
+
+        document
+          .getElementById("recalculate")
+          .addEventListener("click", function () {
+            // Allow user to change some values and recalculate
+            const newWeight = prompt(
+              "Enter new brass sample weight (g):",
+              brassSample.weight
+            );
+            const newConc = prompt(
+              "Enter new Na₂S₂O₃ concentration (M):",
+              titration.thiosulfateConcentration
+            );
+            const newVolume = prompt(
+              "Enter new Na₂S₂O₃ volume used (mL):",
+              titration.thiosulfateVolume
+            );
+
+            if (newWeight && newConc && newVolume) {
+              brassSample.weight = parseFloat(newWeight);
+              titration.thiosulfateConcentration = parseFloat(newConc);
+              titration.thiosulfateVolume = parseFloat(newVolume);
+              displayResults();
+            }
+          });
+
+        document
+          .getElementById("restart")
+          .addEventListener("click", function () {
+            // Reset all parameters and start over
+            brassSample = {
+              weight: 0,
+              actualCopperPercentage: 65,
+              copperMoles: 0,
+              iodineRequired: 0,
+            };
+
+            titration = {
+              thiosulfateConcentration: 0.05,
+              thiosulfateVolume: 0,
+              currentVolume: 0,
+              starchAdded: false,
+              equivalencePoint: 0,
+              finished: false,
+            };
+
+            // Reset all inputs
+            document.getElementById("brass-weight").value = "";
+            document.getElementById("acid-volume").value = "";
+            document.getElementById("ammonia-volume").value = "";
+            document.getElementById("acetic-volume").value = "";
+            document.getElementById("ki-mass").value = "";
+            document.getElementById("thiosulfate-concentration").value = "0.05";
+
+            // Reset solution colors and heights
+            document.getElementById("acid-solution").style.height = "0%";
+            document.getElementById("neutralized-solution").style.height =
+              "30%";
+            document.getElementById("iodide-solution").style.height = "50%";
+            document.getElementById("titration-solution").style.height = "70%";
+            document.getElementById("thiosulfate-level").style.height = "100%";
+
+            // Reset status texts
+            document.getElementById("sample-status").textContent =
+              "Sample ready for weighing";
+            document.getElementById("dissolution-status").textContent =
+              "Ready to add nitric acid";
+            document.getElementById("neutralization-status").textContent =
+              "Ready to neutralize with ammonia";
+            document.getElementById("iodide-status").textContent =
+              "Ready to add reagents";
+            document.getElementById("titration-status").textContent =
+              "Ready to begin titration";
+            document.getElementById("titration-volume").textContent =
+              "Volume added: 0.00 mL";
+
+            // Reset buttons
+            document.getElementById("next-2").disabled = true;
+            document.getElementById("next-3").disabled = true;
+            document.getElementById("next-4").disabled = true;
+            document.getElementById("finish-titration").disabled = true;
+
+            // Reset indicators
+            document.getElementById("add-starch").classList.remove("active");
+
+            // Show first section
+            showSection(1);
+          });
+      }
+
+      // Step 5: Titration
+      document
+        .getElementById("add-drop")
+        .addEventListener("click", function () {
+          if (titration.finished) return;
+
+          titration.currentVolume += 0.5; // Add 0.5 mL per drop
+
+          // Update volume display
+          document.getElementById(
+            "titration-volume"
+          ).textContent = `Volume added: ${titration.currentVolume.toFixed(
+            2
+          )} mL`;
+
+          // Update burette level
+          const buretteLevel = document.getElementById("thiosulfate-level");
+          const newHeight = 100 - (titration.currentVolume / 50) * 100;
+          buretteLevel.style.height = `${newHeight}%`;
+
+          // Simulate color change
+          updateTitrationColor();
+
+          // Animate drop
+          const drop = document.getElementById("thiosulfate-drop");
+          drop.style.display = "block";
+          drop.style.animation = "none";
+          void drop.offsetWidth; // Trigger reflow
+          drop.style.animation = "dropFall 1s linear";
+
+          setTimeout(() => {
+            drop.style.display = "none";
+          }, 1000);
+
+          // Check if we're close to endpoint
+          checkTitrationEndpoint();
+        });
+
+      document
+        .getElementById("add-starch-btn")
+        .addEventListener("click", function () {
+          if (titration.starchAdded) return;
+
+          titration.starchAdded = true;
+          document.getElementById("add-starch").classList.add("active");
+          document.getElementById("titration-status").textContent =
+            "Starch indicator added, solution turns deep blue";
+
+          // Update solution color to blue if iodine is still present
+          if (titration.currentVolume < titration.equivalencePoint * 0.9) {
+            document.getElementById(
+              "titration-solution"
+            ).style.backgroundColor = "#2874a6";
+          }
+        });
+
+      function updateTitrationColor() {
+        const solution = document.getElementById("titration-solution");
+        const completionRatio =
+          titration.currentVolume / titration.equivalencePoint;
+
+        if (!titration.starchAdded) {
+          // Without starch indicator
+          if (completionRatio < 0.5) {
+            solution.style.backgroundColor = "#f39c12"; // Dark orange-brown
+          } else if (completionRatio < 0.9) {
+            solution.style.backgroundColor = "#f5b041"; // Medium orange
+          } else if (completionRatio < 0.98) {
+            solution.style.backgroundColor = "#f8c471"; // Light orange
+          } else {
+            solution.style.backgroundColor = "#fdebd0"; // Very light yellow
+          }
+        } else {
+          // With starch indicator
+          if (completionRatio < 0.9) {
+            solution.style.backgroundColor = "#2874a6"; // Deep blue
+          } else if (completionRatio < 0.98) {
+            solution.style.backgroundColor = "#85c1e9"; // Light blue
+          } else {
+            solution.style.backgroundColor = "#ebf5fb"; // Clear/white
+          }
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -972,3 +972,147 @@ font-weight: normal; /* Make radio labels normal weight *
   margin-top: 15px;
   /* Uses .result-box.error styles */
 }
+
+/* === Chatbot Styles === */
+#chatbot-toggle-button {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  background-color: #3498db; /* Same as action button */
+  color: white;
+  border: none;
+  border-radius: 50%; /* Circular button */
+  width: 60px;
+  height: 60px;
+  font-size: 1.8em; /* Icon size */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000; /* Ensure it's above other content */
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+#chatbot-toggle-button:hover {
+  background-color: #2980b9;
+  transform: scale(1.1);
+}
+
+#chatbot-window {
+  position: fixed;
+  bottom: 100px; /* Position above the toggle button */
+  right: 25px;
+  width: 350px;
+  max-width: 90vw; /* Ensure it fits on smaller screens */
+  height: 450px;
+  max-height: 70vh;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevent content from spilling */
+  z-index: 999; /* Below toggle if window is open, but above page content */
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  opacity: 0; /* Hidden by default, JS will show */
+  transform: translateY(20px); /* Start slightly offset for animation */
+}
+
+#chatbot-window.open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+#chatbot-header {
+  background-color: #34495e; /* Dark header */
+  color: white;
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+}
+
+#chatbot-header span {
+  font-size: 1.1em;
+}
+
+#chatbot-close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5em;
+  cursor: pointer;
+  padding: 0 5px;
+}
+#chatbot-close-button:hover {
+  opacity: 0.8;
+}
+
+#chatbot-messages {
+  flex-grow: 1; /* Takes up available space */
+  padding: 15px;
+  overflow-y: auto; /* Scrollable message area */
+  background-color: #f4f7f6; /* Light background for messages */
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-message {
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 15px;
+  margin-bottom: 10px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.chat-message.user {
+  background-color: #3498db; /* User message color */
+  color: white;
+  align-self: flex-end; /* Align user messages to the right */
+  border-bottom-right-radius: 5px;
+}
+
+.chat-message.ai {
+  background-color: #e9ecef; /* AI message color */
+  color: #333;
+  align-self: flex-start; /* Align AI messages to the left */
+  border-bottom-left-radius: 5px;
+}
+
+#chatbot-input-area {
+  display: flex;
+  padding: 10px;
+  border-top: 1px solid #e0e0e0;
+  background-color: #fff;
+}
+
+#chatbot-input {
+  flex-grow: 1;
+  border: 1px solid #ccc;
+  border-radius: 20px; /* Pill shape */
+  padding: 8px 15px;
+  margin-right: 8px;
+  font-size: 0.95em;
+  outline: none;
+}
+#chatbot-input:focus {
+  border-color: #3498db;
+}
+
+#chatbot-send-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 20px; /* Pill shape */
+  padding: 8px 15px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+#chatbot-send-button:hover {
+  background-color: #2980b9;
+}

@@ -2,217 +2,108 @@
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM Loaded - main.js executing.");
 
-  // // --- Feature: Summarization ---
-  // const summarizeButton = document.getElementById("summarize-button");
-  // const textToSummarize = document.getElementById("text-to-summarize");
-  // const summaryResultDiv = document.getElementById("summary-result");
-  // const summaryLoadingDiv = document.getElementById("summary-loading");
+  // === START GLOBAL HELPER FUNCTIONS (accessible by multiple features) ===
 
-  // if (
-  //   summarizeButton &&
-  //   textToSummarize &&
-  //   summaryResultDiv &&
-  //   summaryLoadingDiv
-  // ) {
-  //   console.log("Summary elements found.");
-  //   summarizeButton.addEventListener("click", async () => {
-  //     console.log("Summarize button clicked.");
-  //     const text = textToSummarize.value.trim();
+  /**
+   * Displays a result in a specified div and shows its associated TTS button.
+   * @param {string} resultDivId - The ID of the div to display the result in.
+   * @param {string} ttsButtonQuerySelector - The query selector for the TTS button.
+   */
+  function showResultAndButton(resultDivId) {
+    const resultDiv = document.getElementById(resultDivId);
+    // Construct the TTS button selector based on the resultDivId if a pattern is used
+    const ttsButton = document.querySelector(
+      `.read-aloud-button[data-target="${resultDivId}"]`
+    );
 
-  //     if (!text) {
-  //       displaySummaryError("Please enter some text to summarize.");
-  //       return;
-  //     }
+    if (resultDiv) {
+      // Ensure content is actually present before showing
+      const content =
+        resultDiv.innerHTML.trim() || resultDiv.textContent.trim();
+      if (
+        content.length > 0 &&
+        content !== "<p></p>" &&
+        content !== "<p>No explanation provided.</p>" &&
+        content !== "No explanation provided."
+      ) {
+        // Check for meaningful content
+        resultDiv.style.display = "block";
+        if (ttsButton) {
+          ttsButton.style.display = "inline-block";
+        }
+      } else {
+        resultDiv.style.display = "none"; // Hide if no meaningful content
+        if (ttsButton) {
+          ttsButton.style.display = "none";
+        }
+      }
+    } else {
+      console.warn(
+        `showResultAndButton: Result div with ID '${resultDivId}' not found.`
+      );
+    }
+  }
 
-  //     // Reset UI
-  //     summaryLoadingDiv.style.display = "block";
-  //     summaryResultDiv.style.display = "none";
-  //     summaryResultDiv.className = "result-box"; // Reset class
-  //     summaryResultDiv.innerHTML = "";
+  /**
+   * Formats text that might contain markdown-like lists (bulleted or numbered) into HTML.
+   * @param {string} text - The input text.
+   * @returns {string} - HTML string with lists formatted.
+   */
+  function formatTextWithLists(text) {
+    if (!text || typeof text !== "string") return "<p>No content provided.</p>"; // Return a default paragraph
+    const lines = text.split("\n");
+    let htmlContent = "";
+    let listType = null; // 'ul' or 'ol'
 
-  //     try {
-  //       console.log("Sending text for summarization...");
-  //       const response = await fetch("/generate-summary", {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({ text: text }),
-  //       });
+    lines.forEach((line) => {
+      const trimmedLine = line.trim();
+      let currentItemType = null;
+      let itemText = "";
 
-  //       summaryLoadingDiv.style.display = "none";
-  //       const data = await response.json(); // Try to parse JSON regardless of status
+      if (trimmedLine.startsWith("* ") || trimmedLine.startsWith("- ")) {
+        currentItemType = "ul";
+        itemText = trimmedLine.substring(2);
+      } else if (trimmedLine.match(/^\d+\.\s/)) {
+        // Matches "1. ", "2. ", etc.
+        currentItemType = "ol";
+        itemText = trimmedLine.replace(/^\d+\.\s/, "");
+      }
 
-  //       if (!response.ok) {
-  //         // Use error message from JSON if available, otherwise use status text
-  //         const errorMsg =
-  //           data.error ||
-  //           `HTTP error! status: ${response.status} ${response.statusText}`;
-  //         console.error("Summary generation failed:", errorMsg);
-  //         displaySummaryError(errorMsg);
-  //       } else {
-  //         console.log("Summary received:", data.summary);
-  //         displaySummaryResult(data.summary);
-  //       }
-  //     } catch (error) {
-  //       console.error("Error during summary fetch operation:", error);
-  //       summaryLoadingDiv.style.display = "none";
-  //       displaySummaryError(
-  //         "An network or unexpected error occurred. Please check the console."
-  //       );
-  //     }
-  //   });
-  // } else {
-  //   console.log("Summary elements not found on this page.");
-  // }
+      if (currentItemType) {
+        if (listType !== currentItemType) {
+          // New list or changed type
+          if (listType) htmlContent += `</${listType}>`; // Close previous list
+          listType = currentItemType;
+          htmlContent += `<${listType}>`;
+        }
+        const li = document.createElement("li");
+        li.textContent = itemText; // Safely set text content
+        htmlContent += li.outerHTML;
+      } else {
+        // Not a list item
+        if (listType) {
+          // If a list was open, close it
+          htmlContent += `</${listType}>`;
+          listType = null;
+        }
+        if (trimmedLine.length > 0) {
+          // Add non-empty lines as paragraphs
+          const p = document.createElement("p");
+          p.textContent = trimmedLine; // Safely set text content
+          htmlContent += p.outerHTML;
+        }
+      }
+    });
+    if (listType) {
+      htmlContent += `</${listType}>`;
+    } // Close any open list at the end
 
-  // // === REVISED Summarization Feature Block ===
-  // const summarizeButton = document.getElementById("summarize-button");
-  // const textToSummarizeInput = document.getElementById("text-to-summarize");
-  // const fileToSummarizeInput = document.getElementById("file-to-summarize");
-  // const summaryResultDiv = document.getElementById("summary-result");
-  // const summaryLoadingDiv = document.getElementById("summary-loading");
-  // const summaryTtsButton = document.querySelector(
-  //   '.read-aloud-button[data-target="summary-result"]'
-  // );
-  // const summaryInputMethodRadios = document.querySelectorAll(
-  //   'input[name="summary-input-method"]'
-  // );
-  // const summaryTextInputArea = document.getElementById(
-  //   "summary-text-input-area"
-  // );
-  // const summaryFileInputArea = document.getElementById(
-  //   "summary-file-input-area"
-  // );
+    return htmlContent.trim() ? htmlContent : `<p>${text}</p>`; // Fallback if no formatting applied
+  }
 
-  // // Check if all necessary elements exist
-  // if (
-  //   summarizeButton &&
-  //   textToSummarizeInput &&
-  //   fileToSummarizeInput &&
-  //   summaryResultDiv &&
-  //   summaryLoadingDiv &&
-  //   summaryInputMethodRadios.length > 0 &&
-  //   summaryTextInputArea &&
-  //   summaryFileInputArea
-  // ) {
-  //   console.log("Summary (Dual Input) elements found.");
+  // === END GLOBAL HELPER FUNCTIONS ===
 
-  //   // --- Event Listener for Radio Buttons (Toggle Input Areas) ---
-  //   summaryInputMethodRadios.forEach((radio) => {
-  //     radio.addEventListener("change", () => {
-  //       if (radio.value === "text") {
-  //         summaryTextInputArea.style.display = "block";
-  //         summaryFileInputArea.style.display = "none";
-  //         fileToSummarizeInput.value = ""; // Clear file input if switching to text
-  //       } else if (radio.value === "file") {
-  //         summaryTextInputArea.style.display = "none";
-  //         summaryFileInputArea.style.display = "block";
-  //         textToSummarizeInput.value = ""; // Clear text area if switching to file
-  //       }
-  //     });
-  //   });
-
-  //   // --- Event Listener for the Summarize Button ---
-  //   summarizeButton.addEventListener("click", async () => {
-  //     console.log("Summarize button clicked.");
-
-  //     // Determine selected input method
-  //     const selectedMethod = document.querySelector(
-  //       'input[name="summary-input-method"]:checked'
-  //     ).value;
-  //     console.log("Selected summary method:", selectedMethod);
-
-  //     let fetchOptions = { method: "POST" };
-  //     let isValid = false;
-
-  //     // --- Prepare Request based on Method ---
-  //     if (selectedMethod === "text") {
-  //       const text = textToSummarizeInput.value.trim();
-  //       if (!text) {
-  //         displaySummaryError("Please paste some text to summarize.");
-  //         return;
-  //       }
-  //       fetchOptions.headers = { "Content-Type": "application/json" };
-  //       fetchOptions.body = JSON.stringify({ text: text, input_type: "text" }); // Send text and type
-  //       isValid = true;
-  //       summaryLoadingDiv.textContent = "Generating summary from text..."; // Update loading text
-  //     } else if (selectedMethod === "file") {
-  //       const file = fileToSummarizeInput.files[0];
-  //       if (!file) {
-  //         displaySummaryError(
-  //           "Please select a file (.txt or .pdf) to summarize."
-  //         );
-  //         return;
-  //       }
-  //       // Basic client-side validation (optional)
-  //       const fileName = file.name.toLowerCase();
-  //       if (!fileName.endsWith(".txt") && !fileName.endsWith(".pdf")) {
-  //         displaySummaryError(
-  //           `Invalid file type selected. Please upload .txt or .pdf.`
-  //         );
-  //         fileToSummarizeInput.value = "";
-  //         return;
-  //       }
-
-  //       const formData = new FormData();
-  //       formData.append("file", file);
-  //       formData.append("input_type", "file"); // Send type
-  //       fetchOptions.body = formData; // No Content-Type header needed here
-  //       isValid = true;
-  //       summaryLoadingDiv.textContent =
-  //         "Processing file and generating summary..."; // Update loading text
-  //     }
-
-  //     if (!isValid) {
-  //       console.error("No valid input method selected or input missing.");
-  //       return; // Should not happen if radio buttons work
-  //     }
-
-  //     // --- Reset UI & Fetch ---
-  //     summaryLoadingDiv.style.display = "block";
-  //     summaryResultDiv.style.display = "none";
-  //     summaryResultDiv.className = "result-box";
-  //     summaryResultDiv.innerHTML = "";
-  //     if (summaryTtsButton) summaryTtsButton.style.display = "none";
-
-  //     try {
-  //       console.log("Sending request to /generate-summary...");
-  //       const response = await fetch("/generate-summary", fetchOptions); // Use prepared options
-
-  //       summaryLoadingDiv.style.display = "none";
-  //       const data = await response.json(); // Expect JSON response always
-
-  //       if (!response.ok) {
-  //         const errorMsg =
-  //           data.error ||
-  //           `HTTP error! status: ${response.status} ${response.statusText}`;
-  //         console.error("Summary generation failed:", errorMsg);
-  //         displaySummaryError(errorMsg);
-  //       } else {
-  //         console.log("Summary received:", data.summary);
-  //         displaySummaryResult(data.summary);
-  //       }
-  //     } catch (error) {
-  //       console.error("Error during summary fetch operation:", error);
-  //       summaryLoadingDiv.style.display = "none";
-  //       displaySummaryError(
-  //         "A network or unexpected error occurred. Please check the console."
-  //       );
-  //     } finally {
-  //       // Clear inputs after attempt (optional)
-  //       // textToSummarizeInput.value = ''; // Maybe don't clear text automatically
-  //       fileToSummarizeInput.value = "";
-  //     }
-  //   }); // End summarizeButton listener
-  // } else {
-  //   console.log("Summary (Dual Input) elements not fully found on this page.");
-  //   // Log which elements are missing if needed for debugging
-  //   if (!summarizeButton) console.log("Missing: summarizeButton");
-  //   if (!textToSummarizeInput) console.log("Missing: textToSummarizeInput");
-  //   if (!fileToSummarizeInput) console.log("Missing: fileToSummarizeInput");
-  //   // etc.
-  // }
-
-  // === REVISED Summarization Feature Block (Attach Button UI) ===
+  // === Summarization Feature Block (Attach Button UI) ===
   const summarizeButton = document.getElementById("summarize-button");
   const textToSummarizeInput = document.getElementById("text-to-summarize");
   const hiddenFileInput = document.getElementById("file-to-summarize-hidden");
@@ -472,528 +363,7 @@ document.addEventListener("DOMContentLoaded", () => {
     visualizeResultDiv.style.display = "block";
   }
 
-  // --- Feature: Quiz Generation ---
-
-  // const generateQuizButton = document.getElementById("generate-quiz-button");
-  // const quizSourceText = document.getElementById("quiz-source-text");
-  // const quizLoadingDiv = document.getElementById("quiz-loading");
-  // const quizAreaDiv = document.getElementById("quiz-area");
-  // const quizQuestionsDiv = document.getElementById("quiz-questions");
-  // const showAnswersButton = document.getElementById("show-answers-button");
-  // const quizAnswersDiv = document.getElementById("quiz-answers");
-  // const quizErrorDiv = document.getElementById("quiz-error");
-
-  // let currentQuizData = null; // Store quiz data for answer reveal
-
-  // if (
-  //   generateQuizButton &&
-  //   quizSourceText &&
-  //   quizLoadingDiv &&
-  //   quizAreaDiv &&
-  //   quizQuestionsDiv &&
-  //   showAnswersButton &&
-  //   quizAnswersDiv &&
-  //   quizErrorDiv
-  // ) {
-  //   console.log("Quiz elements found.");
-  //   generateQuizButton.addEventListener("click", async () => {
-  //     console.log("Generate Quiz button clicked.");
-  //     const sourceText = quizSourceText.value.trim();
-
-  //     if (!sourceText) {
-  //       displayQuizError("Please enter a topic or paste some text.");
-  //       return;
-  //     }
-
-  //     // Reset UI
-  //     quizLoadingDiv.style.display = "block";
-  //     quizAreaDiv.style.display = "none";
-  //     quizQuestionsDiv.innerHTML = "";
-  //     quizAnswersDiv.innerHTML = "";
-  //     quizAnswersDiv.style.display = "none";
-  //     showAnswersButton.style.display = "none";
-  //     quizErrorDiv.style.display = "none";
-  //     currentQuizData = null;
-
-  //     try {
-  //       console.log("Sending text for quiz generation...");
-  //       const response = await fetch("/generate-quiz", {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({ text: sourceText }),
-  //       });
-
-  //       quizLoadingDiv.style.display = "none";
-  //       const data = await response.json();
-
-  //       if (!response.ok) {
-  //         const errorMsg =
-  //           data.error ||
-  //           `HTTP error! status: ${response.status} ${response.statusText}`;
-  //         console.error("Quiz generation failed:", errorMsg);
-  //         displayQuizError(errorMsg);
-  //       } else {
-  //         if (data.quiz && Array.isArray(data.quiz) && data.quiz.length > 0) {
-  //           console.log("Quiz data received:", data.quiz);
-  //           currentQuizData = data.quiz;
-  //           displayQuiz(currentQuizData);
-  //           quizAreaDiv.style.display = "block";
-  //           showAnswersButton.style.display = "inline-block"; // Show button
-  //         } else {
-  //           console.error(
-  //             "Received success but no valid quiz data structure:",
-  //             data
-  //           );
-  //           displayQuizError(
-  //             "Failed to generate a valid quiz. The AI response might be empty or malformed."
-  //           );
-  //         }
-  //       }
-  //     } catch (error) {
-  //       console.error("Error during quiz fetch operation:", error);
-  //       quizLoadingDiv.style.display = "none";
-  //       displayQuizError(
-  //         "An network or unexpected error occurred. Please check the console."
-  //       );
-  //     }
-  //   });
-
-  //   // Listener for the 'Show Answers' button
-  //   showAnswersButton.addEventListener("click", () => {
-  //     if (currentQuizData) {
-  //       displayQuizAnswers(currentQuizData);
-  //       quizAnswersDiv.style.display = "block";
-  //       showAnswersButton.style.display = "none"; // Hide after showing
-  //     }
-  //   });
-  // } else {
-  //   console.log("Quiz elements not found on this page.");
-  // }
-
-  // function displayQuiz(quizData) {
-  //   quizQuestionsDiv.innerHTML = ""; // Clear previous
-  //   quizData.forEach((q, index) => {
-  //     const questionElement = document.createElement("div");
-  //     questionElement.classList.add("quiz-question-item");
-  //     // Sanitize potential HTML in question/options using textContent before setting innerHTML
-  //     const safeQuestion = document.createElement("p");
-  //     safeQuestion.innerHTML = `<strong>${index + 1}. </strong>`; // Keep index bold
-  //     safeQuestion.appendChild(
-  //       document.createTextNode(q.question || "[Missing Question]")
-  //     ); // Append question text safely
-
-  //     const optionsList = document.createElement("ul");
-  //     optionsList.classList.add("quiz-options");
-  //     (q.options || []).forEach((option, i) => {
-  //       const optionItem = document.createElement("li");
-  //       // Display letter + option text safely
-  //       optionItem.textContent = `${String.fromCharCode(65 + i)}) ${
-  //         option || "[Missing Option]"
-  //       }`;
-  //       optionsList.appendChild(optionItem);
-  //     });
-
-  //     questionElement.appendChild(safeQuestion);
-  //     questionElement.appendChild(optionsList);
-  //     quizQuestionsDiv.appendChild(questionElement);
-  //   });
-  // }
-
-  // // === MODIFY Quiz Generation Feature Block ===
-  // const generateQuizButton = document.getElementById("generate-quiz-button");
-  // const quizSourceText = document.getElementById("quiz-source-text");
-  // const quizLoadingDiv = document.getElementById("quiz-loading");
-  // const quizAreaDiv = document.getElementById("quiz-area");
-  // const quizQuestionsDiv = document.getElementById("quiz-questions");
-  // // Keep showAnswersButton if you want it as a fallback/alternative
-  // const showAnswersButton = document.getElementById("show-answers-button");
-  // const quizAnswersDiv = document.getElementById("quiz-answers");
-  // const quizErrorDiv = document.getElementById("quiz-error");
-  // // ADD: Selector for the new submit button (we'll add the button via JS)
-  // let submitQuizButton = null; // Will create this button dynamically
-
-  // let currentQuizData = null; // Store quiz data (questions and answers)
-
-  // if (generateQuizButton /* ... && other quiz elements */) {
-  //   console.log("Quiz elements found.");
-  //   generateQuizButton.addEventListener("click", async () => {
-  //     // ... (keep the existing logic to fetch quiz data from /generate-quiz) ...
-  //     // ... (inside the 'try' block, after getting 'data') ...
-
-  //     if (data.quiz && Array.isArray(data.quiz) && data.quiz.length > 0) {
-  //       console.log("Quiz data received:", data.quiz);
-  //       currentQuizData = data.quiz;
-  //       // *** CALL a new display function ***
-  //       displayInteractiveQuiz(currentQuizData); // Renders radio buttons
-  //       quizAreaDiv.style.display = "block";
-  //       // Hide the old "Show Answers" button initially
-  //       if (showAnswersButton) showAnswersButton.style.display = "none";
-  //       quizAnswersDiv.style.display = "none"; // Hide answers area
-  //     } else {
-  //       // ... (handle errors as before) ...
-  //       displayQuizError("Failed to generate a valid quiz...");
-  //     }
-  //     // ... (rest of fetch logic) ...
-  //   });
-
-  //   // Keep listener for the original "Show Answers" button (optional fallback)
-  //   if (showAnswersButton) {
-  //     showAnswersButton.addEventListener("click", () => {
-  //       if (currentQuizData) {
-  //         displayQuizAnswers(currentQuizData); // Reuse existing answer display
-  //         quizAnswersDiv.style.display = "block";
-  //         showAnswersButton.style.display = "none";
-  //         if (submitQuizButton) submitQuizButton.style.display = "none"; // Hide submit too
-  //       }
-  //     });
-  //   }
-  // } else {
-  //   console.log("Quiz elements not found on this page.");
-  // }
-
-  // // *** NEW Function to display the quiz with radio buttons ***
-  // function displayInteractiveQuiz(quizData) {
-  //   quizQuestionsDiv.innerHTML = ""; // Clear previous questions
-  //   quizData.forEach((q, index) => {
-  //     const questionElement = document.createElement("div");
-  //     questionElement.classList.add("quiz-question-item", "interactive"); // Add 'interactive' class
-  //     questionElement.setAttribute("data-question-index", index); // Store index
-
-  //     // Sanitize and display question
-  //     const safeQuestion = document.createElement("p");
-  //     safeQuestion.innerHTML = `<strong>${index + 1}. </strong>`;
-  //     safeQuestion.appendChild(
-  //       document.createTextNode(q.question || "[Missing Question]")
-  //     );
-  //     questionElement.appendChild(safeQuestion);
-
-  //     // Create radio button group
-  //     const optionsList = document.createElement("div");
-  //     optionsList.classList.add("quiz-options-interactive");
-  //     (q.options || []).forEach((option, i) => {
-  //       const optionId = `q${index}-opt${i}`;
-  //       const optionValue = String.fromCharCode(65 + i); // A, B, C, D
-
-  //       const optionLabel = document.createElement("label");
-  //       optionLabel.classList.add("quiz-option-label");
-  //       optionLabel.setAttribute("for", optionId);
-
-  //       const radioButton = document.createElement("input");
-  //       radioButton.type = "radio";
-  //       radioButton.id = optionId;
-  //       radioButton.name = `quiz-q-${index}`; // Group radios by question
-  //       radioButton.value = optionValue; // A, B, C, D
-
-  //       optionLabel.appendChild(radioButton);
-  //       // Append text safely
-  //       optionLabel.appendChild(
-  //         document.createTextNode(
-  //           ` ${optionValue}) ${option || "[Missing Option]"}`
-  //         )
-  //       );
-
-  //       optionsList.appendChild(optionLabel);
-  //     });
-  //     questionElement.appendChild(optionsList);
-
-  //     // Add area for feedback per question
-  //     const feedbackElement = document.createElement("div");
-  //     feedbackElement.classList.add("quiz-feedback");
-  //     feedbackElement.style.display = "none"; // Hide initially
-  //     questionElement.appendChild(feedbackElement);
-
-  //     quizQuestionsDiv.appendChild(questionElement);
-  //   });
-
-  //   // --- Add Submit Button ---
-  //   // Remove previous submit button if it exists
-  //   const existingSubmitButton = document.getElementById("submit-quiz-button");
-  //   if (existingSubmitButton) {
-  //     existingSubmitButton.remove();
-  //   }
-
-  //   submitQuizButton = document.createElement("button");
-  //   submitQuizButton.id = "submit-quiz-button";
-  //   submitQuizButton.textContent = "Submit Answers";
-  //   submitQuizButton.classList.add("action-button", "main-action");
-  //   submitQuizButton.style.marginTop = "20px";
-  //   submitQuizButton.addEventListener("click", handleSubmitQuiz); // Add listener
-  //   quizQuestionsDiv.appendChild(submitQuizButton); // Add button after questions
-
-  //   // Make sure error div is hidden
-  //   quizErrorDiv.style.display = "none";
-  // }
-
-  // // *** NEW Function to handle quiz submission ***
-  // function handleSubmitQuiz() {
-  //   console.log("Handling quiz submission.");
-  //   if (!currentQuizData) {
-  //     console.error("No quiz data available to submit.");
-  //     return;
-  //   }
-
-  //   let score = 0;
-  //   let totalQuestions = currentQuizData.length;
-  //   let allAnswered = true;
-
-  //   currentQuizData.forEach((q, index) => {
-  //     const questionElement = quizQuestionsDiv.querySelector(
-  //       `.quiz-question-item[data-question-index="${index}"]`
-  //     );
-  //     const feedbackElement = questionElement.querySelector(".quiz-feedback");
-  //     const radioButtons = questionElement.querySelectorAll(
-  //       `input[name="quiz-q-${index}"]`
-  //     );
-  //     const correctAnswer = (q.correct_answer || "").toUpperCase();
-
-  //     let selectedAnswer = null;
-  //     radioButtons.forEach((radio) => {
-  //       if (radio.checked) {
-  //         selectedAnswer = radio.value;
-  //       }
-  //       radio.disabled = true; // Disable radio buttons after submission
-  //     });
-
-  //     feedbackElement.style.display = "block"; // Show feedback area
-  //     feedbackElement.classList.remove("correct", "incorrect"); // Reset classes
-
-  //     if (!selectedAnswer) {
-  //       allAnswered = false;
-  //       feedbackElement.textContent = `⚠️ Please select an answer. Correct answer: ${correctAnswer}`;
-  //       feedbackElement.classList.add("unanswered");
-  //     } else if (selectedAnswer === correctAnswer) {
-  //       score++;
-  //       feedbackElement.textContent = `✔️ Correct!`;
-  //       feedbackElement.classList.add("correct");
-  //       // Highlight the correct label (optional)
-  //       const correctLabel = questionElement.querySelector(
-  //         `input[value="${correctAnswer}"]`
-  //       ).parentNode;
-  //       if (correctLabel) correctLabel.classList.add("correct-answer-label");
-  //     } else {
-  //       feedbackElement.textContent = `❌ Incorrect. Correct answer was: ${correctAnswer}`;
-  //       feedbackElement.classList.add("incorrect");
-  //       // Highlight the correct label and the wrong selection (optional)
-  //       const correctLabel = questionElement.querySelector(
-  //         `input[value="${correctAnswer}"]`
-  //       ).parentNode;
-  //       if (correctLabel) correctLabel.classList.add("correct-answer-label");
-  //       const wrongLabel = questionElement.querySelector(
-  //         `input[value="${selectedAnswer}"]`
-  //       ).parentNode;
-  //       if (wrongLabel) wrongLabel.classList.add("incorrect-answer-label");
-  //     }
-  //   }); // End loop through questions
-
-  //   // --- Display Overall Score ---
-  //   // Remove previous score if exists
-  //   const existingScore = document.getElementById("quiz-score-display");
-  //   if (existingScore) existingScore.remove();
-
-  //   const scoreDisplay = document.createElement("div");
-  //   scoreDisplay.id = "quiz-score-display";
-  //   scoreDisplay.classList.add("quiz-score");
-  //   scoreDisplay.innerHTML = `<h3>Your Score: ${score} / ${totalQuestions}</h3>`;
-  //   if (!allAnswered) {
-  //     scoreDisplay.innerHTML += `<p style="color: orange; font-weight: bold;">(Some questions were unanswered)</p>`;
-  //   }
-  //   quizAreaDiv.appendChild(scoreDisplay); // Add score display to the main quiz area
-
-  //   // Disable the submit button after grading
-  //   if (submitQuizButton) {
-  //     submitQuizButton.disabled = true;
-  //     submitQuizButton.textContent = "Submitted";
-  //   }
-  //   // Optionally show the "Show Answers" button again if needed
-  //   // if (showAnswersButton) showAnswersButton.style.display = 'inline-block';
-
-  //   // --- TODO (Next Feature): Save results to backend ---
-  //   // Call a function here to send data (currentQuizData, user selections, score) to backend
-  //   // saveQuizAttemptToServer(currentQuizData, getUserAnswers(), score, totalQuestions);
-  //   console.log(
-  //     `Quiz submitted. Score: ${score}/${totalQuestions}. Ready to save attempt.`
-  //   );
-  // } // End handleSubmitQuiz
-
-  // // Helper function to get user answers (you might need this for saving results later)
-  // // function getUserAnswers() {
-  // //     const answers = {};
-  // //     if (!currentQuizData) return answers;
-  // //     currentQuizData.forEach((q, index) => {
-  // //         const selectedRadio = quizQuestionsDiv.querySelector(`input[name="quiz-q-${index}"]:checked`);
-  // //         answers[index] = selectedRadio ? selectedRadio.value : null;
-  // //     });
-  // //     return answers;
-  // // }
-
-  // // Keep existing displayQuizAnswers and displayQuizError functions
-  // // (displayQuizAnswers can be used by the fallback 'Show Answers' button)
-
-  // // function displayQuizAnswers(quizData) { ... }
-  // // function displayQuizError(errorMessage) { ... }
-
-  // // === END MODIFY Quiz Generation Feature Block ===
-
-  // function displayQuizAnswers(quizData) {
-  //   quizAnswersDiv.innerHTML = "<h4>Correct Answers:</h4>";
-  //   const answerList = document.createElement("ul");
-  //   quizData.forEach((q, index) => {
-  //     const answerItem = document.createElement("li");
-  //     const correctLetter = (q.correct_answer || "?").toUpperCase();
-  //     const correctIndex = correctLetter.charCodeAt(0) - 65; // 'A' -> 0
-  //     let correctText = "[Invalid Answer Key]";
-  //     if (q.options && q.options.length > correctIndex && correctIndex >= 0) {
-  //       correctText = q.options[correctIndex] || "[Missing Option Text]";
-  //     }
-  //     // Display safely
-  //     answerItem.textContent = `${index + 1}: ${correctLetter}) ${correctText}`;
-  //     answerList.appendChild(answerItem);
-  //   });
-  //   quizAnswersDiv.appendChild(answerList);
-  // }
-
-  // function displayQuizError(errorMessage) {
-  //   quizErrorDiv.textContent = `Error: ${errorMessage}`;
-  //   quizErrorDiv.style.display = "block";
-  //   quizAreaDiv.style.display = "none"; // Hide quiz area on error
-  //   quizLoadingDiv.style.display = "none";
-  // }
-
-  // // === REPLACE THE ENTIRE QUIZ FEATURE BLOCK IN main.js WITH THIS ===
-
-  // console.log("Setting up Quiz feature..."); // Diagnostic log
-
-  // const generateQuizButton = document.getElementById("generate-quiz-button");
-  // const quizSourceText = document.getElementById("quiz-source-text");
-  // const quizLoadingDiv = document.getElementById("quiz-loading");
-  // const quizAreaDiv = document.getElementById("quiz-area");
-  // const quizQuestionsDiv = document.getElementById("quiz-questions");
-  // const showAnswersButton = document.getElementById("show-answers-button"); // Optional button
-  // const quizAnswersDiv = document.getElementById("quiz-answers"); // Optional answers display
-  // const quizErrorDiv = document.getElementById("quiz-error");
-  // let submitQuizButton = null; // Will be created dynamically
-
-  // let currentQuizData = null; // Store quiz data (questions and answers)
-
-  // // Check if essential elements for *starting* the quiz generation exist
-  // if (
-  //   generateQuizButton &&
-  //   quizSourceText &&
-  //   quizLoadingDiv &&
-  //   quizAreaDiv &&
-  //   quizQuestionsDiv &&
-  //   quizErrorDiv
-  // ) {
-  //   console.log(
-  //     "Quiz GENERATION elements found. Attaching listener to Generate button."
-  //   );
-
-  //   // --- Event Listener for the "Generate Quiz" Button ---
-  //   generateQuizButton.addEventListener("click", async () => {
-  //     console.log("Generate Quiz button click event fired!"); // Log click
-  //     const sourceText = quizSourceText.value.trim();
-
-  //     if (!sourceText) {
-  //       // Ensure displayQuizError is defined or handle error appropriately
-  //       if (typeof displayQuizError === "function")
-  //         displayQuizError("Please enter a topic or paste some text.");
-  //       else console.error("displayQuizError function not found.");
-  //       return;
-  //     }
-
-  //     // Reset UI before fetching
-  //     quizLoadingDiv.style.display = "block";
-  //     quizAreaDiv.style.display = "none"; // Hide main area
-  //     quizQuestionsDiv.innerHTML = ""; // Clear old questions
-  //     if (quizAnswersDiv) quizAnswersDiv.style.display = "none"; // Hide old answers
-  //     if (showAnswersButton) showAnswersButton.style.display = "none"; // Hide show answers button
-  //     quizErrorDiv.style.display = "none"; // Hide old errors
-  //     currentQuizData = null; // Reset quiz data
-  //     // Remove previous dynamic elements if they exist
-  //     document.getElementById("submit-quiz-button")?.remove();
-  //     document.getElementById("quiz-score-display")?.remove();
-
-  //     try {
-  //       console.log("Sending text for quiz generation...");
-  //       const response = await fetch("/generate-quiz", {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({ text: sourceText }),
-  //       });
-
-  //       quizLoadingDiv.style.display = "none"; // Hide loading indicator
-
-  //       // --- Process the response ---
-  //       if (!response.ok) {
-  //         // Handle HTTP errors (like 4xx, 5xx)
-  //         let errorMsg = `HTTP error! status: ${response.status} ${response.statusText}`;
-  //         try {
-  //           // Try to get more specific error from JSON response body
-  //           const errorData = await response.json();
-  //           errorMsg = errorData.error || errorMsg;
-  //         } catch (e) {
-  //           console.warn("Could not parse JSON from error response:", e);
-  //           // Optionally get raw text if parsing fails
-  //           // const errorText = await response.text();
-  //           // errorMsg = errorText || errorMsg;
-  //         }
-  //         console.error("Quiz generation failed:", errorMsg);
-  //         if (typeof displayQuizError === "function")
-  //           displayQuizError(errorMsg);
-  //         else
-  //           console.error(
-  //             "displayQuizError function not found. Error:",
-  //             errorMsg
-  //           );
-  //       } else {
-  //         // --- Handle successful response (status 2xx) ---
-  //         // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-  //         // >>> THIS LINE WAS MISSING - IT'S NOW ADDED <<<
-  //         const data = await response.json();
-  //         // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-  //         // Validate the received data structure
-  //         if (data.quiz && Array.isArray(data.quiz) && data.quiz.length > 0) {
-  //           console.log("Quiz data received:", data.quiz);
-  //           currentQuizData = data.quiz; // Store the valid data
-  //           // Call the function to display the interactive quiz
-  //           if (typeof displayInteractiveQuiz === "function")
-  //             displayInteractiveQuiz(currentQuizData);
-  //           else console.error("displayInteractiveQuiz function not found.");
-  //           quizAreaDiv.style.display = "block"; // Show the quiz area now
-  //         } else {
-  //           // Handle cases where response is OK but data isn't as expected
-  //           console.error(
-  //             "Received success response but no valid quiz data structure:",
-  //             data
-  //           );
-  //           if (typeof displayQuizError === "function")
-  //             displayQuizError(
-  //               "Failed to generate a valid quiz. The AI response might be empty or malformed."
-  //             );
-  //           else
-  //             console.error(
-  //               "displayQuizError function not found. Error: Invalid quiz data structure."
-  //             );
-  //         }
-  //       } // End else (response.ok)
-  //     } catch (error) {
-  //       // Catch network errors or other issues during fetch
-  //       console.error("Error during quiz fetch operation:", error);
-  //       quizLoadingDiv.style.display = "none"; // Hide loading
-  //       if (typeof displayQuizError === "function")
-  //         displayQuizError(
-  //           "A network or unexpected error occurred. Please check the console."
-  //         );
-  //       else
-  //         console.error(
-  //           "displayQuizError function not found. Network/fetch error:",
-  //           error
-  //         );
-  //     } // End try/catch
-  //   }); // End generateQuizButton event listener
-
-  // === REVISE Quiz Generation Feature Block ===
+  // === Quiz Generation Feature Block ===
   console.log("Setting up Quiz feature...");
 
   const generateQuizButton = document.getElementById("generate-quiz-button");
@@ -3016,6 +2386,184 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // === END NEW SECTION ===
+
+  // === NEW SECTION: Chatbot Feature ===
+  console.log("Setting up Chatbot feature...");
+
+  const chatbotToggleButton = document.getElementById("chatbot-toggle-button");
+  const chatbotWindow = document.getElementById("chatbot-window");
+  const chatbotCloseButton = document.getElementById("chatbot-close-button");
+  const chatbotMessagesDiv = document.getElementById("chatbot-messages");
+  const chatbotInput = document.getElementById("chatbot-input");
+  const chatbotSendButton = document.getElementById("chatbot-send-button");
+
+  // Check if essential chatbot elements exist
+  if (
+    chatbotToggleButton &&
+    chatbotWindow &&
+    chatbotCloseButton &&
+    chatbotMessagesDiv &&
+    chatbotInput &&
+    chatbotSendButton
+  ) {
+    console.log("Chatbot elements found. Attaching listeners.");
+
+    // --- Toggle Chat Window ---
+    chatbotToggleButton.addEventListener("click", () => {
+      const isOpen = chatbotWindow.classList.toggle("open");
+      chatbotWindow.style.display = isOpen ? "flex" : "none"; // Use flex for column layout
+      if (isOpen) {
+        console.log("Chatbot window opened.");
+        chatbotInput.focus(); // Focus input when opened
+        chatbotToggleButton.innerHTML = '<i class="fas fa-times"></i>'; // Change to close icon
+      } else {
+        console.log("Chatbot window closed.");
+        chatbotToggleButton.innerHTML = '<i class="fas fa-comments"></i>'; // Change back to chat icon
+      }
+    });
+
+    chatbotCloseButton.addEventListener("click", () => {
+      chatbotWindow.classList.remove("open");
+      chatbotWindow.style.display = "none";
+      chatbotToggleButton.innerHTML = '<i class="fas fa-comments"></i>'; // Change back to chat icon
+      console.log("Chatbot window closed via close button.");
+    });
+
+    // --- Send Message ---
+    async function sendMessage() {
+      const userMessage = chatbotInput.value.trim();
+      if (!userMessage) return;
+
+      addMessageToChat(userMessage, "user");
+      chatbotInput.value = ""; // Clear input
+      chatbotInput.disabled = true; // Disable input while waiting
+      chatbotSendButton.disabled = true;
+
+      // Add a temporary "typing" indicator for AI
+      const thinkingMessageDiv = addMessageToChat(
+        "AI is thinking...",
+        "ai",
+        true
+      ); // true for temporary
+
+      try {
+        console.log("Sending message to chatbot backend:", userMessage);
+        const response = await fetch("/chatbot-message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: userMessage }),
+        });
+
+        // Remove "thinking" message
+        if (thinkingMessageDiv && thinkingMessageDiv.parentNode) {
+          thinkingMessageDiv.remove();
+        }
+
+        if (!response.ok) {
+          let errorMsg = `Error: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorData.reply || errorMsg;
+          } catch (e) {
+            /* Ignore if error response isn't JSON */
+          }
+          addMessageToChat(errorMsg, "ai-error"); // Use a different class for errors
+          console.error("Chatbot backend error:", errorMsg);
+        } else {
+          const data = await response.json();
+          addMessageToChat(
+            data.reply || "Sorry, I couldn't get a response.",
+            "ai"
+          );
+        }
+      } catch (error) {
+        console.error("Error sending/receiving chatbot message:", error);
+        if (thinkingMessageDiv && thinkingMessageDiv.parentNode) {
+          // Ensure removal on network error too
+          thinkingMessageDiv.remove();
+        }
+        addMessageToChat(
+          "Network error. Could not reach the AI helper.",
+          "ai-error"
+        );
+      } finally {
+        chatbotInput.disabled = false; // Re-enable input
+        chatbotSendButton.disabled = false;
+        chatbotInput.focus();
+      }
+    }
+
+    chatbotSendButton.addEventListener("click", sendMessage);
+    chatbotInput.addEventListener("keypress", (event) => {
+      if (event.key === "Enter") {
+        sendMessage();
+      }
+    });
+
+    // --- Helper to add messages to the chat window ---
+    function addMessageToChat(text, type, isTemporary = false) {
+      const messageDiv = document.createElement("div");
+      messageDiv.classList.add("chat-message", type); // type can be 'user', 'ai', or 'ai-error'
+      messageDiv.textContent = text; // Safely set text content
+      chatbotMessagesDiv.appendChild(messageDiv);
+      chatbotMessagesDiv.scrollTop = chatbotMessagesDiv.scrollHeight; // Scroll to bottom
+      if (isTemporary) {
+        messageDiv.style.fontStyle = "italic"; // Style temporary messages
+      }
+      return messageDiv; // Return for potential removal (like "thinking" message)
+    }
+  } else {
+    console.warn(
+      "Chatbot UI elements not fully found. Chatbot will not initialize."
+    );
+    // Log which specific elements are missing for easier debugging
+    if (!chatbotToggleButton) console.log("Missing: chatbotToggleButton");
+    // ... add checks for other elements ...
+  }
+  // === END NEW SECTION ===
+
+  // For Physics Simulation
+  console.log("Setting up Simulator Launcher...");
+
+  const experimentSelect = document.getElementById("experiment-select");
+  const launchButton = document.getElementById("launch-experiment-button");
+
+  if (experimentSelect && launchButton) {
+    launchButton.addEventListener("click", () => {
+      const selectedValue = experimentSelect.value;
+      if (selectedValue) {
+        //window.open(selectedValue, "_blank"); // Opens in new tab
+        window.location.href = `/simulation/${selectedValue}`;
+        console.log("Launching physics experiment:", selectedValue);
+      } else {
+        alert("Please select an experiment first.");
+      }
+    });
+  } else {
+    console.warn("Physics Simulator launcher elements not found.");
+  }
+
+
+  // For Physics Simulation
+  console.log("Setting up Simulator Launcher...");
+
+  const chemExperimentSelect = document.getElementById("chem-experiment-select");
+  const chemLaunchButton = document.getElementById("launch-chem-experiment-button");
+
+  if (chemExperimentSelect && chemLaunchButton) {
+    chemLaunchButton.addEventListener("click", () => {
+      const selectedValue = chemExperimentSelect.value;
+      if (selectedValue) {
+        //window.open(selectedValue, "_blank"); // Opens in new tab
+        window.location.href = `/simulation/${selectedValue}`;
+        console.log("Launching chemistry experiment:", selectedValue);
+      } else {
+        alert("Please select an experiment first.");
+      }
+    });
+  } else {
+    console.warn("Chemistry Simulator launcher elements not found.");
+  }
 
   console.log("main.js setup complete.");
 }); // End DOMContentLoaded Listener

@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Torsional Pendulum Simulation</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f0f0f0;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background-color: #0066cc;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+      }
+      .content {
+        display: flex;
+        background-color: white;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .simulation-area {
+        flex: 7;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+      }
+      .controls {
+        flex: 3;
+        background-color: #f8f8f8;
+        padding: 20px;
+        border-left: 1px solid #ddd;
+      }
+      canvas {
+        border: 1px solid #ccc;
+        margin-bottom: 20px;
+        background-color: #e0e9f5;
+      }
+      .control-group {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+      }
+      .control-item {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      select,
+      input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        background-color: #0066cc;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+        font-weight: bold;
+      }
+      button:hover {
+        background-color: #0055aa;
+      }
+      .button-group {
+        display: flex;
+        margin-top: 15px;
+      }
+      .measurement-section {
+        margin-top: 20px;
+        border-top: 1px solid #ddd;
+        padding-top: 15px;
+      }
+      .timer {
+        font-family: "Courier New", monospace;
+        font-size: 24px;
+        padding: 10px;
+        background-color: #333;
+        color: #0f0;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+      .value-display {
+        font-weight: bold;
+        color: #0066cc;
+      }
+      .highlight {
+        background-color: #fff3cd;
+        padding: 10px;
+        border-radius: 4px;
+        margin-top: 10px;
+      }
+      .tab-container {
+        display: flex;
+        margin-bottom: 10px;
+      }
+      .tab {
+        padding: 10px 15px;
+        cursor: pointer;
+        background-color: #ddd;
+        border: none;
+        outline: none;
+        margin-right: 2px;
+        border-radius: 4px 4px 0 0;
+      }
+      .tab.active {
+        background-color: #f8f8f8;
+        border-bottom: 2px solid #0066cc;
+      }
+      #tabContent > div {
+        display: none;
+        padding: 15px;
+        background-color: #f8f8f8;
+        border-radius: 0 0 4px 4px;
+      }
+      #tabContent > div.active {
+        display: block;
+      }
+      .calculations-section {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #f0f7ff;
+        border-radius: 4px;
+      }
+      .formula {
+        font-family: "Times New Roman", Times, serif;
+        font-style: italic;
+        margin: 10px 0;
+      }
+      #infoPanel {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        font-size: 0.9em;
+        max-width: 250px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Torsional Pendulum Simulation</h1>
+        <p>Determine moment of inertia and rigidity modulus of a wire</p>
+      </div>
+      <div class="content">
+        <div class="simulation-area">
+          <div id="infoPanel">
+            <p>Angle: <span id="angleDisplay">0°</span></p>
+            <p>Period: <span id="periodDisplay">-</span></p>
+          </div>
+          <canvas id="simulationCanvas" width="600" height="500"></canvas>
+          <div class="timer" id="timerDisplay">00:00:00:000</div>
+          <div class="button-group">
+            <button id="startBtn">Start Oscillation</button>
+            <button id="resetBtn">Reset</button>
+            <button id="measureBtn">Measure Period</button>
+            <button id="stopBtn">Stop</button>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="tab-container">
+            <button class="tab active" onclick="openTab('parametersTab')">
+              Parameters
+            </button>
+            <button class="tab" onclick="openTab('measurementsTab')">
+              Measurements
+            </button>
+            <button class="tab" onclick="openTab('theoryTab')">Theory</button>
+          </div>
+          <div id="tabContent">
+            <div id="parametersTab" class="active">
+              <div class="control-group">
+                <h3>Suspension Wire Properties</h3>
+                <div class="control-item">
+                  <label for="wireMaterial">Wire Material:</label>
+                  <select id="wireMaterial">
+                    <option value="steel">Steel</option>
+                    <option value="copper" selected>Copper</option>
+                    <option value="brass">Brass</option>
+                    <option value="aluminum">Aluminum</option>
+                  </select>
+                </div>
+                <div class="control-item">
+                  <label for="wireLength">Wire Length (cm):</label>
+                  <input
+                    type="range"
+                    id="wireLength"
+                    min="10"
+                    max="100"
+                    value="30"
+                    oninput="updateValue('wireLength')"
+                  />
+                  <span class="value-display" id="wireLengthValue">30</span>
+                </div>
+                <div class="control-item">
+                  <label for="wireRadius">Wire Radius (mm):</label>
+                  <input
+                    type="range"
+                    id="wireRadius"
+                    min="0.1"
+                    max="1"
+                    value="0.4"
+                    step="0.05"
+                    oninput="updateValue('wireRadius')"
+                  />
+                  <span class="value-display" id="wireRadiusValue">0.4</span>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <h3>Disc Properties</h3>
+                <div class="control-item">
+                  <label for="discMass">Disc Mass (kg):</label>
+                  <input
+                    type="range"
+                    id="discMass"
+                    min="0.1"
+                    max="2"
+                    value="1"
+                    step="0.1"
+                    oninput="updateValue('discMass')"
+                  />
+                  <span class="value-display" id="discMassValue">1</span>
+                </div>
+                <div class="control-item">
+                  <label for="discRadius">Disc Radius (cm):</label>
+                  <input
+                    type="range"
+                    id="discRadius"
+                    min="1"
+                    max="10"
+                    value="5"
+                    step="0.5"
+                    oninput="updateValue('discRadius')"
+                  />
+                  <span class="value-display" id="discRadiusValue">5</span>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <h3>Additional Masses</h3>
+                <div class="control-item">
+                  <label for="additionalMassType"
+                    >Additional Mass Configuration:</label
+                  >
+                  <select id="additionalMassType">
+                    <option value="none">No Additional Mass</option>
+                    <option value="cylinder">Cylindrical Masses</option>
+                    <option value="point">Point Masses at Edges</option>
+                  </select>
+                </div>
+                <div class="control-item">
+                  <label for="additionalMass">Additional Mass Value (g):</label>
+                  <input
+                    type="range"
+                    id="additionalMass"
+                    min="0"
+                    max="50"
+                    value="5"
+                    step="1"
+                    oninput="updateValue('additionalMass')"
+                  />
+                  <span class="value-display" id="additionalMassValue">5</span>
+                </div>
+                <div class="control-item">
+                  <label for="massPosition"
+                    >Mass Position from Center (cm):</label
+                  >
+                  <input
+                    type="range"
+                    id="massPosition"
+                    min="0"
+                    max="10"
+                    value="4"
+                    step="0.5"
+                    oninput="updateValue('massPosition')"
+                  />
+                  <span class="value-display" id="massPositionValue">4</span>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <h3>Initial Conditions</h3>
+                <div class="control-item">
+                  <label for="initialAngle"
+                    >Initial Twist Angle (degrees):</label
+                  >
+                  <input
+                    type="range"
+                    id="initialAngle"
+                    min="0"
+                    max="180"
+                    value="45"
+                    step="5"
+                    oninput="updateValue('initialAngle')"
+                  />
+                  <span class="value-display" id="initialAngleValue">45</span>
+                </div>
+                <div class="control-item">
+                  <label for="dampingFactor">Damping Factor:</label>
+                  <input
+                    type="range"
+                    id="dampingFactor"
+                    min="0"
+                    max="0.1"
+                    value="0.01"
+                    step="0.005"
+                    oninput="updateValue('dampingFactor')"
+                  />
+                  <span class="value-display" id="dampingFactorValue"
+                    >0.01</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div id="measurementsTab">
+              <h3>Measurement Results</h3>
+              <div class="measurement-section">
+                <p>
+                  Time for 10 oscillations: <span id="oscillationTime">-</span>
+                </p>
+                <p>Period (T): <span id="calculatedPeriod">-</span> seconds</p>
+                <p>
+                  Moment of Inertia (I):
+                  <span id="momentOfInertia">-</span> kg·m²
+                </p>
+                <p>
+                  Rigidity Modulus (n): <span id="rigidityModulus">-</span> N/m²
+                </p>
+              </div>
+
+              <div class="highlight">
+                <h4>Experimental Notes</h4>
+                <p>
+                  1. Measure time for multiple oscillations to improve accuracy
+                </p>
+                <p>
+                  2. Keep initial displacement small (< 5°) for real experiments
+                </p>
+                <p>
+                  3. Ensure the wire is free from kinks and properly clamped
+                </p>
+              </div>
+
+              <div class="calculations-section">
+                <h4>Calculation Results</h4>
+                <p>
+                  Current setup rigidity modulus:
+                  <span id="calculatedRigidity">-</span> N/m²
+                </p>
+                <p>
+                  Theoretical moment of inertia:
+                  <span id="theoreticalMoment">-</span> kg·m²
+                </p>
+                <p>
+                  Percentage difference: <span id="percentDifference">-</span> %
+                </p>
+              </div>
+            </div>
+
+            <div id="theoryTab">
+              <h3>Theoretical Background</h3>
+              <p>
+                The torsional pendulum consists of a disc suspended by a thin
+                wire. When the disc is rotated and released, it oscillates due
+                to the torsional restoring force of the wire.
+              </p>
+
+              <h4>Key Formulas</h4>
+              <p class="formula">Period of oscillation: T = 2π√(I/C)</p>
+              <p>where:</p>
+              <ul>
+                <li>T = Period of oscillation (s)</li>
+                <li>I = Moment of inertia of the disc (kg·m²)</li>
+                <li>C = Torsional constant of the wire (N·m/rad)</li>
+              </ul>
+
+              <p class="formula">Torsional constant: C = (πnR⁴)/(2L)</p>
+              <p>where:</p>
+              <ul>
+                <li>n = Rigidity modulus of the wire (N/m²)</li>
+                <li>R = Radius of the wire (m)</li>
+                <li>L = Length of the wire (m)</li>
+              </ul>
+
+              <p class="formula">Moment of inertia of a disc: I = (1/2)MR²</p>
+              <p>where:</p>
+              <ul>
+                <li>M = Mass of the disc (kg)</li>
+                <li>R = Radius of the disc (m)</li>
+              </ul>
+
+              <p class="formula">
+                For point masses at distance r from axis: I = mr²
+              </p>
+
+              <h4>Experimental Procedure</h4>
+              <ol>
+                <li>
+                  Set up the torsional pendulum with known wire dimensions
+                </li>
+                <li>Rotate the disc by a small angle and release</li>
+                <li>Measure the time for multiple oscillations</li>
+                <li>
+                  Calculate the period by dividing the total time by the number
+                  of oscillations
+                </li>
+                <li>
+                  Using known properties and measured period, calculate moment
+                  of inertia and/or rigidity modulus
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Variables for simulation parameters
+      let wireMaterial = "copper";
+      let wireLength = 30; // cm
+      let wireRadius = 0.4; // mm
+      let discMass = 1; // kg
+      let discRadius = 5; // cm
+      let additionalMassType = "none";
+      let additionalMass = 5; // g
+      let massPosition = 4; // cm from center
+      let initialAngle = 45; // degrees
+      let dampingFactor = 0.01;
+
+      // Physics constants
+      const materialProperties = {
+        steel: { density: 7850, rigidityModulus: 8.0e10 },
+        copper: { density: 8960, rigidityModulus: 4.5e10 },
+        brass: { density: 8500, rigidityModulus: 3.5e10 },
+        aluminum: { density: 2700, rigidityModulus: 2.5e10 },
+      };
+
+      // Animation variables
+      let animationId;
+      let angle = 0;
+      let angularVelocity = 0;
+      let lastTimestamp = 0;
+      let oscillating = false;
+      let timer = 0;
+      let timerRunning = false;
+      let oscillationCount = 0;
+      let lastDirection = 0;
+      let periodStart = 0;
+      let periods = [];
+
+      // Canvas and context
+      const canvas = document.getElementById("simulationCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // Buttons
+      const startBtn = document.getElementById("startBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const measureBtn = document.getElementById("measureBtn");
+      const stopBtn = document.getElementById("stopBtn");
+
+      // Update displayed values based on sliders
+      function updateValue(id) {
+        const element = document.getElementById(id);
+        const valueDisplay = document.getElementById(id + "Value");
+
+        if (valueDisplay) {
+          valueDisplay.textContent = element.value;
+        }
+
+        // Update the corresponding variable
+        switch (id) {
+          case "wireLength":
+            wireLength = parseFloat(element.value);
+            break;
+          case "wireRadius":
+            wireRadius = parseFloat(element.value);
+            break;
+          case "discMass":
+            discMass = parseFloat(element.value);
+            break;
+          case "discRadius":
+            discRadius = parseFloat(element.value);
+            break;
+          case "additionalMass":
+            additionalMass = parseFloat(element.value);
+            break;
+          case "massPosition":
+            massPosition = parseFloat(element.value);
+            break;
+          case "initialAngle":
+            initialAngle = parseFloat(element.value);
+            angle = (initialAngle * Math.PI) / 180;
+            drawScene();
+            break;
+          case "dampingFactor":
+            dampingFactor = parseFloat(element.value);
+            break;
+        }
+
+        // Update calculated values
+        updateCalculations();
+      }
+
+      // Wire material change handler
+      document
+        .getElementById("wireMaterial")
+        .addEventListener("change", function () {
+          wireMaterial = this.value;
+          updateCalculations();
+        });
+
+      // Additional mass type change handler
+      document
+        .getElementById("additionalMassType")
+        .addEventListener("change", function () {
+          additionalMassType = this.value;
+          updateCalculations();
+          drawScene();
+        });
+
+      // Event listeners for buttons
+      startBtn.addEventListener("click", startOscillation);
+      resetBtn.addEventListener("click", resetSimulation);
+      measureBtn.addEventListener("click", startMeasurement);
+      stopBtn.addEventListener("click", stopSimulation);
+
+      // Tab functionality
+      function openTab(tabName) {
+        const tabs = document.querySelectorAll(".tab");
+        const tabContents = document.querySelectorAll("#tabContent > div");
+
+        tabs.forEach((tab) => {
+          tab.classList.remove("active");
+          if (
+            tab.textContent.toLowerCase().includes(tabName.replace("Tab", ""))
+          ) {
+            tab.classList.add("active");
+          }
+        });
+
+        tabContents.forEach((content) => {
+          content.classList.remove("active");
+        });
+
+        document.getElementById(tabName).classList.add("active");
+      }
+
+      // Calculate the moment of inertia
+      function calculateMomentOfInertia() {
+        // Base moment of inertia for the disc (in kg·m²)
+        let discMomentOfInertia =
+          0.5 * discMass * Math.pow(discRadius / 100, 2);
+
+        // Additional moment of inertia from masses
+        let additionalMomentOfInertia = 0;
+
+        if (additionalMassType === "cylinder") {
+          // Cylindrical masses distributed around the disc
+          additionalMomentOfInertia =
+            (additionalMass / 1000) * Math.pow(massPosition / 100, 2);
+        } else if (additionalMassType === "point") {
+          // Point masses at the edges
+          additionalMomentOfInertia =
+            2 * (additionalMass / 1000) * Math.pow(massPosition / 100, 2);
+        }
+
+        return discMomentOfInertia + additionalMomentOfInertia;
+      }
+
+      // Calculate the torsion constant
+      function calculateTorsionConstant() {
+        // Convert units to SI
+        const wireLengthM = wireLength / 100; // cm to m
+        const wireRadiusM = wireRadius / 1000; // mm to m
+
+        // Get rigidity modulus
+        const rigidityModulus =
+          materialProperties[wireMaterial].rigidityModulus;
+
+        // Calculate torsion constant (in N·m/rad)
+        return (
+          (Math.PI * rigidityModulus * Math.pow(wireRadiusM, 4)) /
+          (2 * wireLengthM)
+        );
+      }
+
+      // Calculate period of oscillation
+      function calculatePeriod() {
+        const momentOfInertia = calculateMomentOfInertia();
+        const torsionConstant = calculateTorsionConstant();
+
+        // Period formula: T = 2π√(I/C)
+        return 2 * Math.PI * Math.sqrt(momentOfInertia / torsionConstant);
+      }
+
+      // Update all calculated values
+      function updateCalculations() {
+        const momentOfInertia = calculateMomentOfInertia();
+        const period = calculatePeriod();
+        const torsionConstant = calculateTorsionConstant();
+        const rigidityModulus =
+          materialProperties[wireMaterial].rigidityModulus;
+
+        // Display theoretical values
+        document.getElementById("theoreticalMoment").textContent =
+          momentOfInertia.toExponential(4);
+        document.getElementById("calculatedRigidity").textContent =
+          rigidityModulus.toExponential(4);
+
+        // Update period display
+        document.getElementById("periodDisplay").textContent =
+          period.toFixed(3) + " s";
+
+        // Reset simulation if not running
+        if (!oscillating) {
+          drawScene();
+        }
+      }
+
+      // Format time display
+      function formatTime(ms) {
+        const hours = Math.floor(ms / 3600000);
+        const minutes = Math.floor((ms % 3600000) / 60000);
+        const seconds = Math.floor((ms % 60000) / 1000);
+        const milliseconds = Math.floor(ms % 1000);
+
+        return `${hours.toString().padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")}:${seconds
+          .toString()
+          .padStart(2, "0")}:${milliseconds.toString().padStart(3, "0")}`;
+      }
+
+      // Start the oscillation
+      function startOscillation() {
+        if (!oscillating) {
+          angle = (initialAngle * Math.PI) / 180;
+          angularVelocity = 0;
+          oscillating = true;
+          lastTimestamp = performance.now();
+          animationId = requestAnimationFrame(animate);
+        }
+      }
+
+      // Reset the simulation
+      function resetSimulation() {
+        stopSimulation();
+        angle = (initialAngle * Math.PI) / 180;
+        angularVelocity = 0;
+        timer = 0;
+        oscillationCount = 0;
+        periods = [];
+
+        document.getElementById("timerDisplay").textContent = formatTime(0);
+        document.getElementById("oscillationTime").textContent = "-";
+        document.getElementById("calculatedPeriod").textContent = "-";
+        document.getElementById("momentOfInertia").textContent = "-";
+        document.getElementById("rigidityModulus").textContent = "-";
+        document.getElementById("percentDifference").textContent = "-";
+
+        drawScene();
+      }
+
+      // Start measurement
+      function startMeasurement() {
+        if (oscillating) {
+          timerRunning = true;
+          timer = 0;
+          periodStart = performance.now();
+          oscillationCount = 0;
+          periods = [];
+        } else {
+          startOscillation();
+          timerRunning = true;
+          timer = 0;
+          periodStart = performance.now();
+          oscillationCount = 0;
+          periods = [];
+        }
+      }
+
+      // Stop the simulation
+      function stopSimulation() {
+        oscillating = false;
+        timerRunning = false;
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+        }
+      }
+
+      // Animation loop
+      function animate(timestamp) {
+        const deltaTime = (timestamp - lastTimestamp) / 1000; // convert to seconds
+        lastTimestamp = timestamp;
+
+        // Update timer if running
+        if (timerRunning) {
+          timer += deltaTime * 1000; // convert to ms
+          document.getElementById("timerDisplay").textContent =
+            formatTime(timer);
+        }
+
+        // Physics update
+        const momentOfInertia = calculateMomentOfInertia();
+        const torsionConstant = calculateTorsionConstant();
+
+        // Calculate angular acceleration (torque / moment of inertia)
+        const torque =
+          -torsionConstant * angle - dampingFactor * angularVelocity;
+        const angularAcceleration = torque / momentOfInertia;
+
+        // Update angular velocity and position using semi-implicit Euler integration
+        angularVelocity += angularAcceleration * deltaTime;
+        const oldAngle = angle;
+        angle += angularVelocity * deltaTime;
+
+        // Update angle display
+        document.getElementById("angleDisplay").textContent =
+          ((angle * 180) / Math.PI).toFixed(1) + "°";
+
+        // Count oscillations for measurement (detect when passing through zero with positive velocity)
+        const currentDirection = Math.sign(angle);
+        if (oldAngle * angle <= 0 && angularVelocity > 0) {
+          if (timerRunning) {
+            oscillationCount++;
+
+            // Record period time
+            const now = performance.now();
+            if (periodStart !== 0) {
+              const period = (now - periodStart) / 1000; // in seconds
+              periods.push(period);
+              periodStart = now;
+            }
+
+            // Stop after 10 oscillations
+            if (oscillationCount >= 10) {
+              timerRunning = false;
+              calculateResults();
+            }
+          }
+        }
+
+        // Render the scene
+        drawScene();
+
+        // Continue animation if still oscillating
+        if (oscillating) {
+          animationId = requestAnimationFrame(animate);
+        }
+      }
+
+      // Calculate experimental results
+      function calculateResults() {
+        // Calculate average period from measurements
+        let totalTime = timer / 1000; // convert to seconds
+        let avgPeriod = totalTime / oscillationCount;
+
+        // Calculate moment of inertia using measured period
+        const torsionConstant = calculateTorsionConstant();
+        const experimentalMomentOfInertia =
+          (avgPeriod * avgPeriod * torsionConstant) / (4 * Math.PI * Math.PI);
+
+        // Calculate rigidity modulus using measured moment of inertia
+        const wireRadiusM = wireRadius / 1000; // mm to m
+        const wireLengthM = wireLength / 100; // cm to m
+        const experimentalRigidityModulus =
+          (2 *
+            experimentalMomentOfInertia *
+            wireLengthM *
+            4 *
+            Math.PI *
+            Math.PI) /
+          (Math.PI * Math.pow(wireRadiusM, 4) * avgPeriod * avgPeriod);
+
+        // Calculate theoretical moment of inertia
+        const theoreticalMomentOfInertia = calculateMomentOfInertia();
+
+        // Calculate percentage difference
+        const percentDiff = Math.abs(
+          ((experimentalMomentOfInertia - theoreticalMomentOfInertia) /
+            theoreticalMomentOfInertia) *
+            100
+        );
+
+        // Update display
+        document.getElementById("oscillationTime").textContent =
+          totalTime.toFixed(3) + " s";
+        document.getElementById("calculatedPeriod").textContent =
+          avgPeriod.toFixed(3) + " s";
+        document.getElementById("momentOfInertia").textContent =
+          experimentalMomentOfInertia.toExponential(4);
+        document.getElementById("rigidityModulus").textContent =
+          experimentalRigidityModulus.toExponential(4);
+        document.getElementById("percentDifference").textContent =
+          percentDiff.toFixed(2);
+      }
+
+      // Draw the scene
+      function drawScene() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw background (wall)
+        ctx.fillStyle = "#e0e9f5";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Define dimensions and positions
+        const standHeight = 400;
+        const standWidth = 20;
+        const crossbarWidth = 300;
+        const crossbarHeight = 20;
+        const standX = canvas.width / 2 - crossbarWidth / 2;
+        const standY = 50;
+
+        // Draw stand (vertical part)
+        ctx.fillStyle = "#888";
+        ctx.fillRect(standX, standY, standWidth, standHeight);
+
+        // Draw base of stand
+        ctx.fillStyle = "#333";
+        ctx.beginPath();
+        ctx.ellipse(
+          standX + standWidth / 2,
+          standY + standHeight,
+          80,
+          20,
+          0,
+          0,
+          2 * Math.PI
+        );
+        ctx.fill();
+
+        // Draw crossbar (horizontal part)
+        ctx.fillStyle = "#888";
+        ctx.fillRect(standX, standY, crossbarWidth, crossbarHeight);
+
+        // Draw clamps
+        ctx.fillStyle = "#555";
+        ctx.fillRect(canvas.width / 2 - 15, standY + crossbarHeight, 30, 20);
+
+        // Calculate wire length and position
+        const wireStartY = standY + crossbarHeight + 20;
+        const wireLength_px = wireLength * 3; // scale cm to pixels
+        const wireEndY = wireStartY + wireLength_px;
+
+        // Draw wire
+        ctx.strokeStyle = "#999";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, wireStartY);
+        ctx.lineTo(canvas.width / 2, wireEndY);
+        ctx.stroke();
+
+        // Draw disc with current angle
+        const discX = canvas.width / 2;
+        const discY = wireEndY;
+        const discRadius_px = discRadius * 5; // scale cm to pixels
+
+        ctx.save();
+        ctx.translate(discX, discY);
+        ctx.rotate(angle);
+
+        // Draw disc
+        ctx.beginPath();
+        ctx.arc(0, 0, discRadius_px, 0, 2 * Math.PI);
+        ctx.fillStyle = "#ccc";
+        ctx.fill();
+        ctx.strokeStyle = "#888";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Draw center point
+        ctx.beginPath();
+        ctx.arc(0, 0, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = "#333";
+        ctx.fill();
+
+        // Draw radial line for visual reference
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -discRadius_px);
+        ctx.strokeStyle = "#333";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Draw additional masses if selected
+        if (additionalMassType === "cylinder") {
+          const massRadius = 10;
+          const massDistPx = massPosition * 5; // scale cm to pixels
+
+          ctx.beginPath();
+          ctx.arc(0, -massDistPx, massRadius, 0, 2 * Math.PI);
+          ctx.fillStyle = "#555";
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(0, massDistPx, massRadius, 0, 2 * Math.PI);
+          ctx.fillStyle = "#555";
+          ctx.fill();
+        } else if (additionalMassType === "point") {
+          const massRadius = 8;
+          const massDistPx = massPosition * 5; // scale cm to pixels
+
+          // Left mass
+          ctx.beginPath();
+          ctx.arc(-massDistPx, 0, massRadius, 0, 2 * Math.PI);
+          ctx.fillStyle = "#555";
+          ctx.fill();
+
+          // Right mass
+          ctx.beginPath();
+          ctx.arc(massDistPx, 0, massRadius, 0, 2 * Math.PI);
+          ctx.fillStyle = "#555";
+          ctx.fill();
+        }
+
+        ctx.restore();
+
+        // Draw curved arrow to indicate oscillation direction (when not moving)
+        if (!oscillating) {
+          const arrowRadius = discRadius_px + 30;
+          const arrowAngle = ((initialAngle * Math.PI) / 180) * 0.7; // Reduce for better visual
+
+          ctx.save();
+          ctx.translate(discX, discY);
+
+          ctx.beginPath();
+          ctx.arc(0, 0, arrowRadius, -arrowAngle, arrowAngle);
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Draw arrowhead
+          const arrowHeadX = Math.cos(arrowAngle) * arrowRadius;
+          const arrowHeadY = Math.sin(arrowAngle) * arrowRadius;
+
+          ctx.beginPath();
+          ctx.moveTo(arrowHeadX, arrowHeadY);
+          ctx.lineTo(arrowHeadX - 10, arrowHeadY + 5);
+          ctx.lineTo(arrowHeadX - 5, arrowHeadY - 8);
+          ctx.closePath();
+          ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+          ctx.fill();
+
+          ctx.restore();
+        }
+      }
+
+      // Initialize the simulation
+      function initialize() {
+        updateCalculations();
+        drawScene();
+
+        // Set initial values for displays
+        updateValue("wireLength");
+        updateValue("wireRadius");
+        updateValue("discMass");
+        updateValue("discRadius");
+        updateValue("additionalMass");
+        updateValue("massPosition");
+        updateValue("initialAngle");
+        updateValue("dampingFactor");
+      }
+
+      // Run initialization when page loads
+      window.addEventListener("load", initialize);
+    </script>
+  </body>
+</html>

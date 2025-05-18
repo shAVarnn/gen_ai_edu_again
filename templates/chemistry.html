@@ -1,8 +1,22 @@
 {% extends 'base.html' %} {% block title %}Chemistry Helper{% endblock %} {%
-block content %}
+block head_extra %} {# Add 3Dmol.js library from CDN #}
+<!-- <style>
+  /* Style for the 3Dmol viewer container */
+  #mol_viewer_container {
+    width: 100%;
+    height: 450px; /* Adjust as needed */
+    position: relative; /* Needed for 3Dmol.js viewer */
+    background-color: #f0f0f0; /* Placeholder background */
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin-top: 15px;
+  }
+</style> -->
+{% endblock %} {% block content %}
 <div class="container">
   <h1 class="subject-title">Explore Chemistry</h1>
 
+  <!--Adding Text Summarization Feature-->
   <div class="feature-box">
     <h2>📝 Text Summarization</h2>
     <p>Enter chemistry-related text below to get a concise summary.</p>
@@ -20,19 +34,21 @@ block content %}
     <div id="summary-result" class="result-box" style="display: none"></div>
   </div>
 
+  <!--Adding Analogical Understanding Feature-->
   <div class="feature-box">
-    <h2>🖼️ Visualize a Concept</h2>
+    <h2>🖼️ Analogical Understanding</h2>
     <p>
-      Enter a chemistry topic (e.g., Bonding, Periodic Table, Joule's Law), and
-      the AI will generate a description to help you visualize it.
+      Enter a chemistry topic (e.g., Fuels and Combustion , Spectroscopy,
+      Joule's Law), and the AI will generate a description to help you visualize
+      it.
     </p>
     <textarea
       id="topic-to-visualize"
       rows="4"
-      placeholder="e.g., Acid and Bases, Matter..."
+      placeholder="e.g., Spectrochemistry, Polymers..."
     ></textarea>
     <button id="visualize-button" class="action-button">
-      Generate Visualization Aid
+      Generate Analogical Explanation
     </button>
     <div id="visualize-loading" class="loading" style="display: none">
       Generating description...
@@ -40,17 +56,46 @@ block content %}
     <div id="visualize-result" class="result-box" style="display: none"></div>
   </div>
 
+  <!--Adding Scalable Quiz Feature-->
   <div class="feature-box">
     <h2>❓ Check Your Understanding</h2>
     <p>
-      Enter a chemistry topic or paste text, and the AI will generate a short
-      quiz (X multiple-choice questions).
+      Enter a topic or paste text, select difficulty and number of questions,
+      and the AI will generate a quiz.
     </p>
-    <textarea
-      id="quiz-source-text"
-      rows="8"
-      placeholder="Enter topic (e.g., 'Types of Matter') or paste physics text here..."
-    ></textarea>
+
+    <div class="form-group">
+      <label for="quiz-source-text">Topic or Text:</label>
+      <textarea
+        id="quiz-source-text"
+        rows="6"
+        placeholder="Enter topic (e.g., 'Water Technology', 'Electrochemistry') or paste text here..."
+      ></textarea>
+    </div>
+
+    <div class="quiz-options-selectors">
+      <div class="form-group inline">
+        <label for="quiz-difficulty">Difficulty:</label>
+        <select id="quiz-difficulty" name="quiz-difficulty">
+          <option value="easy" selected>Easy (Elementary)</option>
+          <option value="medium">Medium (Intro University)</option>
+          <option value="hard">Hard (Advanced University)</option>
+        </select>
+      </div>
+      <div class="form-group inline">
+        <label for="quiz-question-count">Number of Questions:</label>
+        <input
+          type="number"
+          id="quiz-question-count"
+          name="quiz-question-count"
+          min="3"
+          max="20"
+          value="5"
+        />
+        <small>(3-20 recommended)</small>
+      </div>
+    </div>
+
     <button id="generate-quiz-button" class="action-button">
       Generate Quiz
     </button>
@@ -60,52 +105,19 @@ block content %}
     <div id="quiz-area" style="display: none">
       <h3>Quiz</h3>
       <div id="quiz-questions"></div>
-      <button
-        id="show-answers-button"
-        class="action-button secondary-button"
-        style="display: none"
-      >
-        Show Answers
-      </button>
-      <div id="quiz-answers" style="display: none; margin-top: 15px"></div>
     </div>
+    <button
+      id="show-answers-button"
+      class="action-button secondary-button"
+      style="display: none; margin-top: 10px"
+    >
+      Show Answers (Static)
+    </button>
+    <div id="quiz-answers" style="display: none; margin-top: 15px"></div>
     <div id="quiz-error" class="result-box error" style="display: none"></div>
   </div>
 
-  <div class="feature-box">
-    <h2>🧩 Crossword Helper</h2>
-    <p>
-      Enter a topic or paste a paragraph, and the AI will suggest words and
-      clues suitable for a crossword puzzle based on the text.
-    </p>
-    <textarea
-      id="crossword-source-text"
-      rows="8"
-      placeholder="Enter topic or paste text here..."
-    ></textarea>
-    <button id="generate-crossword-button" class="action-button">
-      Generate Word/Clue List
-    </button>
-    <div id="crossword-loading" class="loading" style="display: none">
-      Generating suggestions...
-    </div>
-    <div id="crossword-result" style="margin-top: 20px; display: none">
-      <h3>Suggested Words & Clues:</h3>
-      <p>
-        <small
-          >(Note: This tool provides suggestions. Creating the actual grid
-          requires a separate tool or manual effort.)</small
-        >
-      </p>
-      <div id="crossword-list"></div>
-    </div>
-    <div
-      id="crossword-error"
-      class="result-box error"
-      style="display: none"
-    ></div>
-  </div>
-
+  <!--Adding Chemical Equation Balancer and Explainer Feature-->
   <div class="feature-box">
     <h2>🧪 Chemical Equation Balancer & Explainer</h2>
     <p>
@@ -162,5 +174,35 @@ block content %}
       style="display: none"
     ></div>
   </div>
+
+  <!--Adding Lab Simulator-->
+  <div class="feature-box">
+    <h2>🔬 Chemistry Lab Simulator</h2>
+    <p>
+      Select an experiment from the dropdown below to access the interactive lab
+      simulation.
+    </p>
+
+    <div class="form-group">
+      <label for="chem-experiment-select">Choose an Experiment:</label>
+      <select id="chem-experiment-select" class="form-control">
+        <option value="">-- Select an Experiment --</option>
+        <option value="copper-brass">
+          Estimation of percentage of copper in brass by Iodometric titration
+        </option>
+        <option value="ex2">Ex 2</option>
+
+        <!--Can Add more experiments as needed -->
+      </select>
+    </div>
+
+    <button
+      id="launch-chem-experiment-button"
+      class="action-button"
+      style="margin-top: 10px"
+    >
+      🚀 Let's do Experiment
+    </button>
+  </div>
+  {% endblock %} {# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ #}
 </div>
-{% endblock %}
