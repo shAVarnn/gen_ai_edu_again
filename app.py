@@ -1911,11 +1911,11 @@ def chatbot_message():
         You are a friendly and helpful AI assistant for a student learning platform.
         The student said: "{user_message}"
 
-        Respond concisely and helpfully. If the question is complex or outside your general knowledge,
+        Respond concisely and helpfully but do not answer anything out of scope of physics and chemistry. If the question is complex or outside your general knowledge of physics or chemistry,
         politely state that you can help with general queries or guide them to specific features on the platform.
         Keep your answers relatively short and suitable for a chat interface.
-        If asked about a specific subject and you know the student is on a page for Physics, Chemistry, Biology, History, or Geography,
-        try to tailor your answer slightly if appropriate, but primarily act as a general helper.
+        If asked about a specific subject and you know that the topic is of Physics or Chemistry,
+        try to tailor your answer slightly if appropriate, but primarily act as a general helper and at end mention that for detailed queries,please go to physics page or chemistry page depending on topic. If question is out of scope of physics or chemistry, say that right now the platform focusses only on physics and chemistry and we will get back with other subjects soon.
         Do not make up facts. If you don't know, say so.
         """
 
@@ -2099,7 +2099,7 @@ def load_simulation(sim_name):
         "torsional-pendulum": "torsional_pendulum.html",
         "spring-constant": "spring_constant.html",
         "laser-diffraction": "laser_diffraction.html",
-        "hall-effectt": "hall_effect.html",
+        "hall-effect": "hall_effect.html",
         "copper-brass": "copperinbrass.html"
     }
 
