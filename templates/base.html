@@ -23,23 +23,25 @@
     {# Allows child templates to set a body class e.g. for auth pages #}
     <header class="main-header">
       <div class="container">
-        <h1>Your Co-Captain here🚀</h1>
+        <h1>Your Co-Guru here</h1>
         <nav class="main-nav">
           <a href="{{ url_for('index') }}">Home</a> |
           <a href="{{ url_for('subject_page', subject='physics') }}">Physics</a>
           |
-          <!-- <a href="{{ url_for('subject_page', subject='history') }}">History</a>
-          | -->
-          <!-- <a href="{{ url_for('subject_page', subject='geography') }}"
-            >Geography</a
-          >
-          | -->
           <a href="{{ url_for('subject_page', subject='chemistry') }}"
             >Chemistry</a
           >
-
-          <!-- <a href="{{ url_for('subject_page', subject='biology') }}">Biology</a> -->
-
+          |
+          <a href="{{ url_for('subject_page', subject='biology') }}">Biology</a>
+          |
+          <a href="{{ url_for('subject_page', subject='geography') }}"
+            >Geography</a
+          >
+          |
+          <a href="{{ url_for('subject_page', subject='history') }}">History</a>
+          |
+          <a href="{{ url_for('subject_page', subject='pdf_qa') }}">PDF Q&A</a>
+          {# NEW LINK #}
           <span class="auth-links">
             {% if current_user.is_authenticated %} |
             <a href="{{ url_for('quiz_history') }}">Quiz History</a> | Welcome,

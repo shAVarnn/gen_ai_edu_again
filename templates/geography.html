@@ -1,4 +1,4 @@
-<!-- {% extends 'base.html' %} {% block title %}Geography Helper{% endblock %} {%
+{% extends 'base.html' %} {% block title %}Geography Helper{% endblock %} {%
 block head_extra %}
 <link
   rel="stylesheet"
@@ -22,7 +22,7 @@ block head_extra %}
   }
 </style>
 {% endblock %} {% block content %}
-<div class="container">
+<div class="container" data-subject="{{ subject_name.lower() }}">
   <h1 class="subject-title">Explore Geography</h1>
 
   <div class="feature-box">
@@ -80,17 +80,46 @@ block head_extra %}
     <div id="summary-result" class="result-box" style="display: none"></div>
   </div>
 
+  <!--Adding Quiz Feature-->
   <div class="feature-box">
     <h2>❓ Check Your Understanding</h2>
     <p>
-      Enter a geographical topic or paste text, and the AI will generate a short
-      quiz.
+      Enter a topic or paste text, select difficulty and number of questions,
+      and the AI will generate a quiz.
     </p>
-    <textarea
-      id="quiz-source-text"
-      rows="8"
-      placeholder="Enter topic (e.g., 'Tectonic Plates') or paste geographical text..."
-    ></textarea>
+
+    <div class="form-group">
+      <label for="quiz-source-text">Topic or Text:</label>
+      <textarea
+        id="quiz-source-text"
+        rows="6"
+        placeholder="Enter topic (e.g., 'Wave Optics', 'Quantum Mechanics') or paste text here..."
+      ></textarea>
+    </div>
+
+    <div class="quiz-options-selectors">
+      <div class="form-group inline">
+        <label for="quiz-difficulty">Difficulty:</label>
+        <select id="quiz-difficulty" name="quiz-difficulty">
+          <option value="easy" selected>Easy (Elementary)</option>
+          <option value="medium">Medium (Intro University)</option>
+          <option value="hard">Hard (Advanced University)</option>
+        </select>
+      </div>
+      <div class="form-group inline">
+        <label for="quiz-question-count">Number of Questions:</label>
+        <input
+          type="number"
+          id="quiz-question-count"
+          name="quiz-question-count"
+          min="3"
+          max="20"
+          value="5"
+        />
+        <small>(3-20 recommended)</small>
+      </div>
+    </div>
+
     <button id="generate-quiz-button" class="action-button">
       Generate Quiz
     </button>
@@ -100,50 +129,16 @@ block head_extra %}
     <div id="quiz-area" style="display: none">
       <h3>Quiz</h3>
       <div id="quiz-questions"></div>
-      <button
-        id="show-answers-button"
-        class="action-button secondary-button"
-        style="display: none"
-      >
-        Show Answers
-      </button>
-      <div id="quiz-answers" style="display: none; margin-top: 15px"></div>
     </div>
+    <button
+      id="show-answers-button"
+      class="action-button secondary-button"
+      style="display: none; margin-top: 10px"
+    >
+      Show Answers (Static)
+    </button>
+    <div id="quiz-answers" style="display: none; margin-top: 15px"></div>
     <div id="quiz-error" class="result-box error" style="display: none"></div>
   </div>
-
-  <div class="feature-box">
-    <h2>🧩 Crossword Helper</h2>
-    <p>
-      Enter a topic or paste a paragraph, and the AI will suggest words and
-      clues suitable for a crossword puzzle based on the text.
-    </p>
-    <textarea
-      id="crossword-source-text"
-      rows="8"
-      placeholder="Enter topic or paste text here..."
-    ></textarea>
-    <button id="generate-crossword-button" class="action-button">
-      Generate Word/Clue List
-    </button>
-    <div id="crossword-loading" class="loading" style="display: none">
-      Generating suggestions...
-    </div>
-    <div id="crossword-result" style="margin-top: 20px; display: none">
-      <h3>Suggested Words & Clues:</h3>
-      <p>
-        <small
-          >(Note: This tool provides suggestions. Creating the actual grid
-          requires a separate tool or manual effort.)</small
-        >
-      </p>
-      <div id="crossword-list"></div>
-    </div>
-    <div
-      id="crossword-error"
-      class="result-box error"
-      style="display: none"
-    ></div>
-  </div>
 </div>
-{% endblock %} -->
+{% endblock %}

@@ -1,6 +1,73 @@
-<!-- {% extends 'base.html' %} {% block title %}History Helper{% endblock %} {% block
-content %}
-<div class="container">
+{% extends 'base.html' %} {% block title %}History Helper{% endblock %} {% block
+content %} {% block head_extra %}
+<style>
+  .battle-spinner-feature-box {
+    /* Specific class for this feature box */
+    text-align: center; /* Center button and display */
+  }
+  #battle-wheel-wrapper {
+    width: 320px; /* Slightly larger for padding */
+    height: 320px;
+    margin: 20px auto;
+    position: relative; /* For pointer and canvas positioning */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #battle-wheel-canvas {
+    /* Canvas itself will be sized by JS, but border can be here */
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  }
+  #wheel-static-pointer {
+    /* More stylish pointer */
+    width: 0;
+    height: 0;
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-top: 30px solid #e74c3c; /* Red pointer */
+    position: absolute;
+    top: -5px; /* Position above the wheel */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100; /* Ensure it's on top */
+    filter: drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.3));
+  }
+  #spin-battle-button {
+    margin-top: 10px; /* Reduced margin */
+    padding: 12px 25px;
+    font-size: 1.2em;
+    background-color: #e67e22; /* Orange spin button */
+    border: none;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  #spin-battle-button:hover {
+    background-color: #d35400;
+  }
+  #spin-battle-button:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+  }
+  #selected-battle-display {
+    margin-top: 20px;
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #2c3e50;
+    min-height: 1.5em;
+    padding: 10px 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    display: inline-block; /* So it doesn't take full width */
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+</style>
+{% endblock %}
+
+<div class="container" data-subject="{{ subject_name.lower() }}">
   <h1 class="subject-title">Explore History</h1>
 
   <div class="feature-box">
@@ -54,6 +121,63 @@ content %}
     <div id="flow-error" class="result-box error" style="display: none"></div>
   </div>
 
+  <div class="feature-box battle-spinner-feature-box">
+    {# Added specific class #}
+    <h2><i class="fas fa-sync-alt"></i> Spin for a Battle!</h2>
+    <p>
+      Click the button to spin the wheel and randomly select a historical battle
+      to explore.
+    </p>
+
+    <div id="battle-wheel-wrapper">
+      <div id="wheel-static-pointer"></div>
+      <canvas id="battle-wheel-canvas" width="300" height="300"></canvas>
+    </div>
+
+    <button id="spin-battle-button" class="action-button">
+      Spin the Wheel!
+    </button>
+    <div id="selected-battle-display">Selected Battle: ---</div>
+  </div>
+  <div class="feature-box">
+    <h2><i class="fas fa-stream"></i> Battle Event Flow Explainer</h2>
+    <p>
+      The selected battle from the wheel will appear below. Click "Get Battle
+      Flow" for an AI-generated explanation.
+    </p>
+    <div class="form-group">
+      <label for="battle-name-input">Battle Name:</label>
+      <input
+        type="text"
+        id="battle-name-input"
+        class="form-control"
+        placeholder="Battle selected by wheel will appear here..."
+        readonly
+      />
+      {# Make it readonly initially #}
+    </div>
+    <button id="get-battle-flow-button" class="action-button">
+      Get Battle Flow
+    </button>
+    <div id="battle-flow-loading" class="loading" style="display: none">
+      Generating battle flow...
+    </div>
+    <div id="battle-flow-result" class="result-box" style="display: none"></div>
+    <!-- <button
+      class="read-aloud-button"
+      data-target="battle-flow-result"
+      style="display: none"
+      title="Read battle flow aloud"
+    >
+      🔊 Read
+    </button> -->
+    <div
+      id="battle-flow-error"
+      class="result-box error"
+      style="display: none"
+    ></div>
+  </div>
+
   <div class="feature-box">
     <h2>📝 Text Summarization</h2>
     <p>Enter historical text below to get a concise summary.</p>
@@ -71,17 +195,46 @@ content %}
     <div id="summary-result" class="result-box" style="display: none"></div>
   </div>
 
+  <!--Adding Quiz Feature-->
   <div class="feature-box">
     <h2>❓ Check Your Understanding</h2>
     <p>
-      Enter a historical topic or paste text, and the AI will generate a short
-      quiz.
+      Enter a topic or paste text, select difficulty and number of questions,
+      and the AI will generate a quiz.
     </p>
-    <textarea
-      id="quiz-source-text"
-      rows="8"
-      placeholder="Enter topic (e.g., 'The Norman Conquest') or paste historical text..."
-    ></textarea>
+
+    <div class="form-group">
+      <label for="quiz-source-text">Topic or Text:</label>
+      <textarea
+        id="quiz-source-text"
+        rows="6"
+        placeholder="Enter topic (e.g., 'Wave Optics', 'Quantum Mechanics') or paste text here..."
+      ></textarea>
+    </div>
+
+    <div class="quiz-options-selectors">
+      <div class="form-group inline">
+        <label for="quiz-difficulty">Difficulty:</label>
+        <select id="quiz-difficulty" name="quiz-difficulty">
+          <option value="easy" selected>Easy (Elementary)</option>
+          <option value="medium">Medium (Intro University)</option>
+          <option value="hard">Hard (Advanced University)</option>
+        </select>
+      </div>
+      <div class="form-group inline">
+        <label for="quiz-question-count">Number of Questions:</label>
+        <input
+          type="number"
+          id="quiz-question-count"
+          name="quiz-question-count"
+          min="3"
+          max="20"
+          value="5"
+        />
+        <small>(3-20 recommended)</small>
+      </div>
+    </div>
+
     <button id="generate-quiz-button" class="action-button">
       Generate Quiz
     </button>
@@ -91,50 +244,16 @@ content %}
     <div id="quiz-area" style="display: none">
       <h3>Quiz</h3>
       <div id="quiz-questions"></div>
-      <button
-        id="show-answers-button"
-        class="action-button secondary-button"
-        style="display: none"
-      >
-        Show Answers
-      </button>
-      <div id="quiz-answers" style="display: none; margin-top: 15px"></div>
     </div>
+    <button
+      id="show-answers-button"
+      class="action-button secondary-button"
+      style="display: none; margin-top: 10px"
+    >
+      Show Answers (Static)
+    </button>
+    <div id="quiz-answers" style="display: none; margin-top: 15px"></div>
     <div id="quiz-error" class="result-box error" style="display: none"></div>
   </div>
-
-  <div class="feature-box">
-    <h2>🧩 Crossword Helper</h2>
-    <p>
-      Enter a topic or paste a paragraph, and the AI will suggest words and
-      clues suitable for a crossword puzzle based on the text.
-    </p>
-    <textarea
-      id="crossword-source-text"
-      rows="8"
-      placeholder="Enter topic or paste text here..."
-    ></textarea>
-    <button id="generate-crossword-button" class="action-button">
-      Generate Word/Clue List
-    </button>
-    <div id="crossword-loading" class="loading" style="display: none">
-      Generating suggestions...
-    </div>
-    <div id="crossword-result" style="margin-top: 20px; display: none">
-      <h3>Suggested Words & Clues:</h3>
-      <p>
-        <small
-          >(Note: This tool provides suggestions. Creating the actual grid
-          requires a separate tool or manual effort.)</small
-        >
-      </p>
-      <div id="crossword-list"></div>
-    </div>
-    <div
-      id="crossword-error"
-      class="result-box error"
-      style="display: none"
-    ></div>
-  </div>
 </div>
-{% endblock %} -->
+{% endblock %}

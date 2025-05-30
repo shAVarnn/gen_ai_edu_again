@@ -1,4 +1,3 @@
-
 import google.generativeai as genai
 import os
 import logging
@@ -13,9 +12,21 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import flash, redirect, url_for
+from flask import flash, redirect
+from flask import session
 import io
 from pypdf import PdfReader
+
+# --- NEW Langchain and FAISS imports ---
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.prompts import PromptTemplate
+from langchain.chains.question_answering import load_qa_chain
+import hashlib # For generating unique IDs for PDFs
+import shutil # For cleaning up old indexes
+
 
 
 # --- Basic Setup ---
@@ -57,9 +68,8 @@ login_manager.login_view = 'login' # The route name (function name) for the logi
 login_manager.login_message_category = 'info' # Flash message category
 login_manager.login_message = 'Please log in to access this page.'
 
-# --- END NEW CONFIGURATION ---
+# --- ENDING NEW CONFIGURATION ---
 
-# Add after db = SQLAlchemy(app) in app.py
 
 # Define the User model for the database
 class User(db.Model, UserMixin):
@@ -103,7 +113,7 @@ def load_user(user_id):
     """Loads user from the database based on user_id stored in session."""
     return User.query.get(int(user_id))
 
-# Add after the load_user function in app.py
+# We should add after the load_user function 
 
 # --- Forms Definition ---
 
@@ -137,9 +147,90 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def inject_current_year():
     return {'current_year': datetime.utcnow().year}
 
+
 # Add before the API endpoint routes in app.py
-# Need to import flash and redirect at the top of app.py:
+# Need to import flash and redirect at the top
 # from flask import flash, redirect, url_for
+
+
+# --- Configuration for PDF Q&A ---
+FAISS_INDEX_DIR = os.path.join(app.instance_path, "faiss_indexes")
+if not os.path.exists(FAISS_INDEX_DIR):
+    os.makedirs(FAISS_INDEX_DIR)
+    logging.info(f"Created FAISS index directory: {FAISS_INDEX_DIR}")
+
+
+
+# --- Langchain Helper Functions ---
+
+def get_pdf_text_from_file_storage(pdf_file_storage):
+    text = ""
+    try:
+        pdf_stream = io.BytesIO(pdf_file_storage.read())
+        pdf_reader = PdfReader(pdf_stream)
+        if pdf_reader.is_encrypted:
+            try: pdf_reader.decrypt('')
+            except Exception: logging.warning(f"Could not decrypt PDF {pdf_file_storage.filename}")
+        for page in pdf_reader.pages:
+            page_text = page.extract_text()
+            if page_text: text += page_text + "\n"
+    except Exception as e:
+        logging.error(f"Error reading PDF file {pdf_file_storage.filename}: {e}")
+        raise
+    return text
+
+
+def get_text_chunks_langchain(text):
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
+    chunks = text_splitter.split_text(text)
+    return chunks
+
+def create_and_save_vector_store(text_chunks, index_path):
+    """Creates a FAISS vector store from text chunks and saves it locally."""
+    try:
+        embeddings = GoogleGenerativeAIEmbeddings(
+            model="models/embedding-001",
+            google_api_key=API_KEY 
+        )
+
+        vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
+        vector_store.save_local(index_path)
+        logging.info(f"FAISS vector store saved to: {index_path}")
+    except Exception as e:
+        logging.error(f"Error creating/saving vector store at {index_path}: {e}")
+        raise
+
+def get_conversational_qa_chain():
+    """Loads and returns a Langchain QA chain with a specific prompt."""
+    prompt_template = """
+    You are an AI assistant tasked with answering questions based ONLY on the provided context from a document.
+    Read the context carefully. If the answer is found within the context, provide a clear and concise answer.
+    If the answer cannot be found in the provided context, you MUST explicitly state: "The answer is not found in the provided document."
+    Do NOT use any external knowledge or make assumptions beyond the given text.
+    Do NOT attempt to search the internet. Your knowledge is strictly limited to the document context.
+
+    Context:
+    {context}
+
+    Question:
+    {question}
+
+    Answer based ONLY on the context:
+    """
+
+    llm_model = ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash",
+        temperature=0.3,
+        google_api_key=API_KEY # Use the API_KEY loaded from .env
+    )
+
+    prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
+    chain = load_qa_chain(llm_model, chain_type="stuff", prompt=prompt)
+    return chain
+
+# --- END Langchain Helper Functions ---
+
+
 
 # --- Authentication Routes ---
 
@@ -206,15 +297,14 @@ def index():
     """Serves the home page with links to subjects."""
     logging.info("Serving index page.")
     # Define the subjects for which you have templates
-    # subjects = ['physics', 'history', 'geography','chemistry','biology'] # Add 'chemistry', 'biology' when templates exist
-    subjects = ['physics', 'chemistry'] # Add 'chemistry', 'biology' when templates exist
+    subjects = ['physics', 'history', 'geography','chemistry','biology','pdf_qa'] # Can add other subjects if needed
     return render_template('index.html', subjects=subjects)
 
 @app.route('/<subject>')
 @login_required
 def subject_page(subject):
     """Serves the specific page for a given subject."""
-    valid_subjects = ['physics', 'history', 'geography', 'chemistry', 'biology'] # All potential subjects
+    valid_subjects = ['physics', 'history', 'geography', 'chemistry', 'biology','pdf_qa'] # All potential subjects
     template_name = f'{subject}.html'
     template_path = os.path.join(app.template_folder, template_name)
 
@@ -232,49 +322,6 @@ def subject_page(subject):
 
 @app.route('/generate-summary', methods=['POST'])
 def generate_summary():
-    # """Generates a summary for the provided text."""
-    # logging.info("Received request for /generate-summary")
-    # if not request.is_json:
-    #     logging.error("Request is not JSON for summary")
-    #     return jsonify({"error": "Request must be JSON"}), 400
-
-    # data = request.get_json()
-    # text_to_summarize = data.get('text')
-
-    # if not text_to_summarize or not isinstance(text_to_summarize, str) or not text_to_summarize.strip():
-    #     logging.error("No valid text provided for summarization")
-    #     return jsonify({"error": "No text provided"}), 400
-
-    # try:
-    #     logging.info("Generating summary using Gemini API...")
-    #     prompt = f"Summarize the following text concisely for a secondary school student:\n\n---\n{text_to_summarize}\n---"
-    #     response = model.generate_content(prompt)
-
-    #     # Safely access response text and handle potential blocks/empty responses
-    #     summary_text = ""
-    #     if response.parts:
-    #         summary_text = response.parts[0].text
-    #     elif hasattr(response, 'text'): # Fallback for older or different response structures
-    #         summary_text = response.text
-
-    #     if not summary_text.strip():
-    #          # Check for safety blocks first
-    #          if response.prompt_feedback and response.prompt_feedback.block_reason:
-    #              block_reason = response.prompt_feedback.block_reason
-    #              logging.warning(f"Summary generation blocked: {block_reason}")
-    #              return jsonify({"error": f"Content blocked due to: {block_reason}. Try different text."}), 400
-    #          else:
-    #              logging.warning("Generated summary is empty.")
-    #              # Return success but with a message indicating inability to summarize
-    #              return jsonify({"summary": "Sorry, I couldn't generate a meaningful summary for this text."}), 200
-
-    #     logging.info("Summary generated successfully.")
-    #     return jsonify({"summary": summary_text})
-
-    # except Exception as e:
-    #     logging.exception(f"Error during summary generation API call: {e}")
-    #     # Check for specific API errors if possible (depends on library structure)
-    #     return jsonify({"error": f"An internal error occurred during summary generation: {str(e)}"}), 500
     """
     Generates a summary from either pasted text (JSON) or an uploaded file (FormData).
     Detects input type based on request Content-Type or a field in the payload.
@@ -369,7 +416,7 @@ def generate_summary():
         logging.exception(f"Unexpected error processing input for summary: {e}")
         return jsonify({"error": "An unexpected error occurred processing your input."}), 500
 
-    # --- Text Extracted/Received - Now call Gemini API ---
+    # --- Text Extracted/Received - Now calling Gemini API ---
     try:
         logging.info(f"Generating summary using Gemini API for content from {input_source_description}...")
         # (Optional text truncation logic can go here)
@@ -429,16 +476,6 @@ def generate_visual_description():
 
     try:
         logging.info(f"Generating visual description for topic: {topic}")
-        # prompt = f"""
-        # Generate a short, vivid description (2-4 sentences) to help a secondary school student visualize the concept or topic of '{topic}'.
-        # Focus on imagery, simple analogies, or easy-to-picture scenes. Avoid overly technical jargon.
-        # Example for 'Gravity': 'Imagine the Earth like a giant, slightly stretchy trampoline. Anything with mass, like you or an apple, creates a small dip. Things naturally roll 'downhill' into these dips towards the object – that's gravity pulling them in!'
-        # Example for 'Photosynthesis': 'Think of a tiny solar-powered kitchen inside a plant leaf. It uses sunlight energy, water sucked up by roots, and carbon dioxide from the air to cook up sugary food for the plant. As a bonus, it releases the oxygen we breathe!'
-
-        # Now, generate a description for: '{topic}'
-        # """
-        
-        # Inside /generate-visual-description route in app.py
         prompt = f"""
         Generate a detailed yet easy-to-understand description (around 6-10 sentences) to help a B Tech. engineering college student visualize the concept or topic of '{topic}'.
         Focus on imagery, analogies, or easy-to-picture scenes. Avoid overly technical jargon but provide enough detail for a good mental picture.
@@ -472,152 +509,6 @@ def generate_visual_description():
         return jsonify({"error": f"An internal error occurred during visualization generation: {str(e)}"}), 500
 
 
-# @app.route('/generate-quiz', methods=['POST'])
-# def generate_quiz():
-#     """Generates a multiple-choice quiz based on input text/topic."""
-#     logging.info("Received request for /generate-quiz")
-#     if not request.is_json:
-#         logging.error("Request is not JSON for quiz")
-#         return jsonify({"error": "Request must be JSON"}), 400
-
-#     data = request.get_json()
-#     source_text = data.get('text')
-
-#     if not source_text or not isinstance(source_text, str) or not source_text.strip():
-#         logging.error("No valid source text provided for quiz")
-#         return jsonify({"error": "No text or topic provided"}), 400
-
-#     try:
-#         logging.info("Generating quiz using Gemini API...")
-#         # prompt = f"""
-#         # Based on the following text or topic, generate exactly 3 multiple-choice quiz questions suitable for a secondary school student.
-#         # For each question, provide 4 options (labeled A, B, C, D). Indicate the correct answer clearly.
-#         # Return the output ONLY as a single valid JSON list (array) of objects. Each object in the list must have these exact keys: "question" (string), "options" (list of 4 strings), and "correct_answer" (string, the single letter 'A', 'B', 'C', or 'D').
-#         # Do not include any explanatory text, markdown formatting, or anything else before or after the JSON list.
-
-#         # Source Text/Topic:
-#         # ---
-#         # {source_text}
-#         # ---
-
-#         # Valid JSON Output Example:
-#         # [
-#         #   {{"question": "What is the powerhouse of the cell?", "options": ["A) Nucleus", "B) Ribosome", "C) Mitochondrion", "D) Cell Wall"], "correct_answer": "C"}},
-#         #   {{"question": "Newton's First Law deals with?", "options": ["A) Action-Reaction", "B) Force and Acceleration", "C) Gravity", "D) Inertia"], "correct_answer": "D"}},
-#         #   {{"question": "What gas do plants absorb during photosynthesis?", "options": ["A) Oxygen", "B) Carbon Dioxide", "C) Nitrogen", "D) Hydrogen"], "correct_answer": "B"}}
-#         # ]
-
-#         # Now, generate the JSON quiz based ONLY on the provided source text/topic:
-#         # """
-
-#         # Inside /generate-quiz route in app.py
-#         prompt = f"""
-#         Based on the following text or topic, generate exactly 5 multiple-choice quiz questions suitable for a secondary school student.
-#         For each question, provide 4 options (labeled A, B, C, D). Indicate the correct answer clearly.
-# Return the output ONLY as a single valid JSON list (array) of objects. Each object in the list must have these exact keys: "question" (string), "options" (list of 4 strings), and "correct_answer" (string, the single letter 'A', 'B', 'C', or 'D').
-# Do not include any explanatory text, markdown formatting, or anything else before or after the JSON list.
-
-# Source Text/Topic:
-# ---
-# {source_text}
-# ---
-
-# Valid JSON Output Example (Structure for 5 questions):
-# [
-#   {{"question": "Q1?", "options": ["A", "B", "C", "D"], "correct_answer": "C"}},
-#   {{"question": "Q2?", "options": ["A", "B", "C", "D"], "correct_answer": "B"}},
-#   {{"question": "Q3?", "options": ["A", "B", "C", "D"], "correct_answer": "A"}},
-#   {{"question": "Q4?", "options": ["A", "B", "C", "D"], "correct_answer": "D"}},
-#   {{"question": "Q5?", "options": ["A", "B", "C", "D"], "correct_answer": "B"}}
-# ]
-
-# Now, generate the JSON quiz based ONLY on the provided source text/topic:
-# """
-
-#         # Configure the model to output JSON
-#         generation_config = genai.types.GenerationConfig(
-#             response_mime_type="application/json"
-#         )
-
-#         response = model.generate_content(prompt, generation_config=generation_config)
-#         logging.info("Quiz response received from Gemini.")
-
-#         quiz_json_string = ""
-#         if response.parts: quiz_json_string = response.parts[0].text
-#         elif hasattr(response, 'text'): quiz_json_string = response.text
-
-#         if not quiz_json_string.strip():
-#              if response.prompt_feedback and response.prompt_feedback.block_reason:
-#                  block_reason = response.prompt_feedback.block_reason
-#                  logging.warning(f"Quiz generation blocked: {block_reason}")
-#                  return jsonify({"error": f"Content blocked due to: {block_reason}. Try different text."}), 400
-#              else:
-#                  logging.warning("Received empty response string for quiz JSON.")
-#                  return jsonify({"error": "AI returned an empty response for the quiz."}), 500
-
-#         # Validate and parse the JSON
-#         try:
-#             quiz_data = json.loads(quiz_json_string)
-
-#             # Rigorous validation
-#             if not isinstance(quiz_data, list):
-#                 raise ValueError("Generated JSON is not a list.")
-#             if not quiz_data: # Handle empty list case
-#                 raise ValueError("Generated JSON list is empty.")
-#             if len(quiz_data) != 3: # Ensure exactly 3 questions requested
-#                  logging.warning(f"AI generated {len(quiz_data)} questions instead of 3.")
-#                  # Decide whether to proceed or raise error - let's proceed if structure is ok
-
-#             for i, q in enumerate(quiz_data):
-#                 if not isinstance(q, dict):
-#                     raise ValueError(f"Item {i} in JSON list is not an object.")
-#         # ... (keep the rest of the validation for question, options, correct_answer structure) ...
-#                 if not all(key in q for key in ["question", "options", "correct_answer"]): # Keep this
-#                         raise ValueError(f"Question object {i} is missing required keys.")
-#                 # if not isinstance(q, dict):
-#                 #     raise ValueError(f"Item {i} in JSON list is not an object.")
-#                 # if not all(key in q for key in ["question", "options", "correct_answer"]):
-#                 #     raise ValueError(f"Question object {i} is missing required keys.")
-#                 # if not isinstance(q["question"], str) or not q["question"].strip():
-#                 #      raise ValueError(f"Question {i} has invalid 'question' text.")
-#                 # if not isinstance(q["options"], list) or len(q["options"]) != 4:
-#                 #     raise ValueError(f"Question {i} 'options' is not a list of 4 items.")
-#                 # if not all(isinstance(opt, str) and opt.strip() for opt in q["options"]):
-#                 #      raise ValueError(f"Question {i} has invalid text in 'options'.")
-#                 # if not isinstance(q["correct_answer"], str) or q["correct_answer"].upper() not in ["A", "B", "C", "D"]:
-#                 #     raise ValueError(f"Question {i} 'correct_answer' ('{q['correct_answer']}') is not valid (must be A, B, C, or D).")
-
-#             logging.info("Quiz JSON parsed and validated successfully.")
-#             return jsonify({"quiz": quiz_data})
-
-#         except json.JSONDecodeError as json_e:
-#             logging.error(f"Failed to parse JSON response from Gemini: {json_e}")
-#             logging.error(f"Received text for quiz: {quiz_json_string}")
-#             return jsonify({"error": "Failed to generate a valid quiz format (AI response was not valid JSON)."}), 500
-#         except ValueError as val_e:
-#              logging.error(f"Generated quiz JSON validation failed: {val_e}")
-#              logging.error(f"Received JSON string: {quiz_json_string}")
-#              return jsonify({"error": f"Generated quiz data structure was invalid: {val_e}"}), 500
-#         except Exception as e:
-#              logging.exception(f"Unexpected error processing quiz JSON: {e}")
-#              return jsonify({"error": "An unexpected error occurred while processing the quiz data."}), 500
-
-#     except Exception as e:
-#         logging.exception(f"Error during quiz generation API call: {e}")
-#         # Check for block reason if response object exists
-#         block_reason_msg = ""
-#         try:
-#             if response and response.prompt_feedback and response.prompt_feedback.block_reason:
-#                 block_reason = response.prompt_feedback.block_reason
-#                 logging.warning(f"Quiz generation potentially blocked: {block_reason}")
-#                 block_reason_msg = f" Content may be blocked ({block_reason})."
-#         except NameError: pass # response not defined if error was before API call
-#         except AttributeError: pass # response exists but no prompt_feedback
-
-#         return jsonify({"error": f"An internal error occurred during quiz generation.{block_reason_msg} Details: {str(e)}"}), 500
-
-# File: app.py
-# ... (imports and other code) ...
 
 # === MODIFY the /generate-quiz route AGAIN ===
 @app.route('/generate-quiz', methods=['POST'])
@@ -800,130 +691,7 @@ def generate_battle_flow():
         return jsonify({"error": f"An internal error occurred during event flow generation.{block_reason_msg} Details: {str(e)}"}), 500
 
 
-# @app.route('/generate-map-info', methods=['POST'])
-# def generate_map_info():
-#     """Generates structured data (lat/lon, description, points) for map visualization."""
-#     logging.info("Received request for /generate-map-info")
-#     if not request.is_json:
-#         logging.error("Request is not JSON for map info")
-#         return jsonify({"error": "Request must be JSON"}), 400
-
-#     data = request.get_json()
-#     topic = data.get('topic')
-
-#     if not topic or not isinstance(topic, str) or not topic.strip():
-#         logging.error("No valid topic provided for map")
-#         return jsonify({"error": "No geographical topic provided"}), 400
-
-#     try:
-#         logging.info(f"Generating map info for topic: {topic}")
-#         prompt = f"""
-#         Analyze the geographical topic: "{topic}". Provide information suitable for displaying on an interactive map (like Leaflet.js) for a secondary school student.
-
-#         Return the output ONLY as a single valid JSON object with these exact keys:
-#         - "center_lat": Suggested map center latitude (float). Use null if no sensible center exists.
-#         - "center_lon": Suggested map center longitude (float). Use null if no sensible center exists.
-#         - "zoom": Suggested initial map zoom level (integer, e.g., 3-5 for global/continental, 6-10 for country/region, 11-14 for city/area, 15+ for specific site). Use null if no sensible default zoom exists.
-#         - "description": A brief (2-5 sentences) geographical description of the topic.
-#         - "points_of_interest": A JSON list (array) of 1 to 5 specific, relevant locations. Each object must have:
-#             - "name": Name of the point (string).
-#             - "lat": Latitude (float).
-#             - "lon": Longitude (float).
-#             - "popup_info": Short text for a map marker popup (string, 1-3 sentences).
-#           If the topic is very broad (e.g., "Oceans"), list a few key examples or features. If specific (e.g., "Mount Fuji"), list 1-3 key points (summit, visitor center). If no specific points are suitable or findable, return an empty list []. Ensure coordinates are plausible.
-
-#         Strictly adhere to the JSON format. Output only the JSON object, nothing else.
-
-#         Example for "Sahara Desert":
-#         {{
-#           "center_lat": 23.0,
-#           "center_lon": 12.0,
-#           "zoom": 4,
-#           "description": "The Sahara is the largest hot desert in the world, covering much of North Africa. It features vast sand dunes (ergs), rocky plateaus (hamadas), and extreme temperatures.",
-#           "points_of_interest": [
-#             {{ "name": "Erg Chebbi, Morocco", "lat": 31.16, "lon": -3.98, "popup_info": "Famous large sand dunes popular with tourists." }},
-#             {{ "name": "Ahaggar Mountains, Algeria", "lat": 23.29, "lon": 5.54, "popup_info": "A highland region in the central Sahara." }},
-#             {{ "name": "Siwa Oasis, Egypt", "lat": 29.20, "lon": 25.52, "popup_info": "An isolated fertile oasis known for dates and olives." }}
-#           ]
-#         }}
-
-#         Now generate the JSON for topic: "{topic}"
-#         """
-
-#         generation_config = genai.types.GenerationConfig(response_mime_type="application/json")
-#         response = model.generate_content(prompt, generation_config=generation_config)
-#         logging.info("Map info response received from Gemini.")
-
-#         map_json_string = ""
-#         if response.parts: map_json_string = response.parts[0].text
-#         elif hasattr(response, 'text'): map_json_string = response.text
-
-#         if not map_json_string.strip():
-#              if response.prompt_feedback and response.prompt_feedback.block_reason:
-#                  block_reason = response.prompt_feedback.block_reason
-#                  logging.warning(f"Map info generation blocked: {block_reason}")
-#                  return jsonify({"error": f"Content blocked due to: {block_reason}. Try different text."}), 400
-#              else:
-#                   logging.warning("Received empty response string for map JSON.")
-#                   return jsonify({"error": "AI returned an empty response for map data."}), 500
-
-#         try:
-#             map_data = json.loads(map_json_string)
-
-#             # Validation
-#             required_keys = ["center_lat", "center_lon", "zoom", "description", "points_of_interest"]
-#             if not isinstance(map_data, dict) or not all(k in map_data for k in required_keys):
-#                 raise ValueError(f"Generated JSON missing required keys ({required_keys}).")
-
-#             # Allow null for lat/lon/zoom but check type if not null
-#             if map_data["center_lat"] is not None and not isinstance(map_data["center_lat"], (int, float)): raise ValueError("center_lat must be a number or null.")
-#             if map_data["center_lon"] is not None and not isinstance(map_data["center_lon"], (int, float)): raise ValueError("center_lon must be a number or null.")
-#             if map_data["zoom"] is not None and not isinstance(map_data["zoom"], int): raise ValueError("zoom must be an integer or null.")
-#             if not isinstance(map_data["description"], str): raise ValueError("description must be a string.")
-
-#             if not isinstance(map_data["points_of_interest"], list):
-#                 raise ValueError("'points_of_interest' must be a list.")
-
-#             for i, poi in enumerate(map_data["points_of_interest"]):
-#                  if not isinstance(poi, dict) or not all(k in poi for k in ["name", "lat", "lon", "popup_info"]):
-#                       raise ValueError(f"Point of interest object {i} is missing required keys.")
-#                  if not isinstance(poi["name"], str) or not poi["name"].strip(): raise ValueError(f"POI {i} has invalid name.")
-#                  if not isinstance(poi["lat"], (int, float)): raise ValueError(f"POI {i} latitude is invalid.")
-#                  if not isinstance(poi["lon"], (int, float)): raise ValueError(f"POI {i} longitude is invalid.")
-#                  # Basic plausibility check for lat/lon
-#                  if not (-90 <= poi["lat"] <= 90 and -180 <= poi["lon"] <= 180): raise ValueError(f"POI {i} coordinates ({poi['lat']}, {poi['lon']}) are out of bounds.")
-#                  if not isinstance(poi["popup_info"], str): raise ValueError(f"POI {i} popup_info is invalid.")
-
-
-#             logging.info("Map info JSON parsed and validated successfully.")
-#             return jsonify(map_data) # Return the validated data
-
-#         except json.JSONDecodeError as json_e:
-#             logging.error(f"Failed to parse map JSON response: {json_e}\nReceived text: {map_json_string}")
-#             return jsonify({"error": "Failed to generate valid map data format (AI response not valid JSON)."}), 500
-#         except ValueError as val_e:
-#              logging.error(f"Generated map JSON validation failed: {val_e}\nReceived JSON string: {map_json_string}")
-#              return jsonify({"error": f"Generated map data structure was invalid: {val_e}"}), 500
-#         except Exception as e:
-#              logging.exception(f"Unexpected error processing map JSON: {e}")
-#              return jsonify({"error": "An unexpected error occurred processing map data."}), 500
-
-#     except Exception as e:
-#         logging.exception(f"Error during map info generation API call: {e}")
-#         block_reason_msg = ""
-#         try:
-#             if response and response.prompt_feedback and response.prompt_feedback.block_reason:
-#                  block_reason = response.prompt_feedback.block_reason
-#                  logging.warning(f"Map info generation potentially blocked: {block_reason}")
-#                  block_reason_msg = f" Content may be blocked ({block_reason})."
-#         except NameError: pass
-#         except AttributeError: pass
-#         return jsonify({"error": f"An internal error occurred during map info generation.{block_reason_msg} Details: {str(e)}"}), 500
-
-
-# File: app.py
-# ... (imports and other code) ...
-
+#####This is without BOX implementation
 # # === MODIFY the /generate-map-info route ===
 # @app.route('/generate-map-info', methods=['POST'])
 # def generate_map_info():
@@ -1205,130 +973,7 @@ def generate_map_info():
         return jsonify({"error": f"An internal error occurred during map info generation.{block_reason_msg} Details: {str(e)}"}), 500
 # === END REPLACEMENT for /generate-map-info ===
 
-# ... (keep the rest of app.py) ...
 
-
-# File: app.py
-# ... (keep all existing imports and code) ...
-
-# === NEW ROUTE for Crossword Data Generation ===
-@app.route('/generate-crossword-data', methods=['POST'])
-def generate_crossword_data():
-    """Generates a list of potential crossword words and clues from text."""
-    logging.info("Received request for /generate-crossword-data")
-    if not request.is_json:
-        logging.error("Request is not JSON for crossword data")
-        return jsonify({"error": "Request must be JSON"}), 400
-
-    data = request.get_json()
-    source_text = data.get('text')
-
-    if not source_text or not isinstance(source_text, str) or not source_text.strip():
-        logging.error("No valid source text provided for crossword")
-        return jsonify({"error": "No text or topic provided"}), 400
-
-    try:
-        logging.info("Generating crossword data using Gemini API...")
-        # Prompt asking for JSON output: list of {"word": "...", "clue": "..."}
-        prompt = f"""
-        Analyze the following text or topic and extract 7-10 key terms or concepts suitable for a crossword puzzle for a secondary school student.
-        For each term, provide a concise, clear clue. The terms should ideally be single words, but short two-word answers might be acceptable if necessary.
-        Return the output ONLY as a single valid JSON list (array) of objects. Each object must have these exact keys: "word" (the answer term, string) and "clue" (the corresponding clue, string).
-        Do not include any explanatory text, markdown, or anything else before or after the JSON list. Ensure words are relevant to the main themes of the text.
-
-        Source Text/Topic:
-        ---
-        {source_text}
-        ---
-
-        Valid JSON Output Example:
-        [
-          {{"word": "PHOTOSYNTHESIS", "clue": "Process plants use to make food from sunlight"}},
-          {{"word": "CHLOROPHYLL", "clue": "Green pigment that absorbs light energy"}},
-          {{"word": "GLUCOSE", "clue": "Type of sugar produced by plants"}},
-          {{"word": "OXYGEN", "clue": "Gas released by plants during photosynthesis"}},
-          {{"word": "SUNLIGHT", "clue": "Energy source for photosynthesis"}},
-          {{"word": "LEAF", "clue": "Part of the plant where photosynthesis mainly occurs"}},
-          {{"word": "WATER", "clue": "Absorbed by roots, needed for the process"}},
-          {{"word": "STOMATA", "clue": "Pores in leaves that exchange gases"}}
-        ]
-
-        Now, generate the JSON list of word/clue pairs based ONLY on the provided source text/topic:
-        """
-
-        # Configure the model to output JSON
-        generation_config = genai.types.GenerationConfig(
-            response_mime_type="application/json"
-        )
-
-        response = model.generate_content(prompt, generation_config=generation_config)
-        logging.info("Crossword data response received from Gemini.")
-
-        crossword_json_string = ""
-        if response.parts: crossword_json_string = response.parts[0].text
-        elif hasattr(response, 'text'): crossword_json_string = response.text
-
-        if not crossword_json_string.strip():
-             if response.prompt_feedback and response.prompt_feedback.block_reason:
-                 block_reason = response.prompt_feedback.block_reason
-                 logging.warning(f"Crossword data generation blocked: {block_reason}")
-                 return jsonify({"error": f"Content blocked: {block_reason}. Try different text."}), 400
-             else:
-                 logging.warning("Received empty response string for crossword JSON.")
-                 return jsonify({"error": "AI returned an empty response for crossword data."}), 500
-
-        # Validate and parse the JSON
-        try:
-            crossword_data = json.loads(crossword_json_string)
-
-            # Validation
-            if not isinstance(crossword_data, list):
-                raise ValueError("Generated JSON response is not a list.")
-            if not crossword_data:
-                raise ValueError("Generated JSON list of words/clues is empty.")
-
-            for i, item in enumerate(crossword_data):
-                item_num = i + 1
-                if not isinstance(item, dict):
-                    raise ValueError(f"Item {item_num} in JSON list is not an object.")
-                if not all(key in item for key in ["word", "clue"]):
-                    raise ValueError(f"Item {item_num} is missing 'word' or 'clue' key.")
-                if not isinstance(item["word"], str) or not item["word"].strip():
-                     raise ValueError(f"Item {item_num} has invalid 'word'.")
-                # Optional: Add check for spaces in word if strictly single words desired
-                # if ' ' in item["word"].strip():
-                #     logging.warning(f"Item {item_num} word '{item['word']}' contains spaces.")
-                if not isinstance(item["clue"], str) or not item["clue"].strip():
-                     raise ValueError(f"Item {item_num} has invalid 'clue'.")
-
-            logging.info(f"Crossword data JSON ({len(crossword_data)} pairs) parsed and validated successfully.")
-            return jsonify({"crossword_data": crossword_data}) # Return the list
-
-        except json.JSONDecodeError as json_e:
-            logging.error(f"Failed to parse crossword JSON response: {json_e}\nReceived: {crossword_json_string}")
-            return jsonify({"error": "Failed to generate valid crossword data format (AI response not valid JSON)."}), 500
-        except ValueError as val_e:
-             logging.error(f"Generated crossword JSON validation failed: {val_e}\nReceived: {crossword_json_string}")
-             return jsonify({"error": f"Generated crossword data structure was invalid: {val_e}"}), 500
-        except Exception as e:
-             logging.exception(f"Unexpected error processing crossword JSON: {e}")
-             return jsonify({"error": "An unexpected error occurred processing crossword data."}), 500
-
-    except Exception as e:
-        logging.exception(f"Error during crossword data generation API call: {e}")
-        block_reason_msg = ""
-        try:
-            if response and response.prompt_feedback and response.prompt_feedback.block_reason:
-                 block_reason = response.prompt_feedback.block_reason
-                 logging.warning(f"Crossword data generation potentially blocked: {block_reason}")
-                 block_reason_msg = f" Content may be blocked ({block_reason})."
-        except NameError: pass
-        except AttributeError: pass
-        return jsonify({"error": f"An internal error occurred during crossword data generation.{block_reason_msg} Details: {str(e)}"}), 500
-# === END NEW ROUTE ===
-
-# Add this route before API endpoints in app.py
-# Ensure 'json' is imported: import json
 
 @app.route('/save-quiz-attempt', methods=['POST'])
 @login_required # Only logged-in users can save attempts
@@ -1374,7 +1019,7 @@ def save_quiz_attempt():
         return jsonify({"success": False, "error": f"An internal error occurred: {str(e)}"}), 500
 
 
-# Add this route before API endpoints in app.py
+
 
 @app.route('/quiz-history')
 @login_required # Must be logged in to see history
@@ -1392,7 +1037,7 @@ def quiz_history():
          logging.exception(f"Error fetching quiz history for user {current_user.email}: {e}")
          flash('Could not retrieve quiz history due to an internal error.', 'danger')
          return redirect(url_for('index')) # Redirect home on error
-# ... (keep the rest of app.py, including the if __name__ == '__main__': block) ...
+
 
 # === MODIFY the /get-writing-feedback route AGAIN ===
 @app.route('/get-writing-feedback', methods=['POST'])
@@ -1538,6 +1183,8 @@ def get_writing_feedback():
         # ... (code to check for block reason in response) ...
         return jsonify({"error": f"An internal error occurred during feedback generation.{block_reason_msg} Details: {str(e)}"}), 500
 # === END REVISED /get-writing-feedback route ===
+
+
 
 # === NEW ROUTE for Chemical Equation Balancer ===
 @app.route('/balance-chemical-equation', methods=['POST'])
@@ -1911,12 +1558,13 @@ def chatbot_message():
         You are a friendly and helpful AI assistant for a student learning platform.
         The student said: "{user_message}"
 
-        Respond concisely and helpfully but do not answer anything out of scope of physics and chemistry. If the question is complex or outside your general knowledge of physics or chemistry,
+        Respond concisely and helpfully but do not answer anything out of scope of physics,chemistry,biology,history and geography. If the question is complex or outside your general knowledge of above mentioned subjects,
         politely state that you can help with general queries or guide them to specific features on the platform.
         Keep your answers relatively short and suitable for a chat interface.
-        If asked about a specific subject and you know that the topic is of Physics or Chemistry,
-        try to tailor your answer slightly if appropriate, but primarily act as a general helper and at end mention that for detailed queries,please go to physics page or chemistry page depending on topic. If question is out of scope of physics or chemistry, say that right now the platform focusses only on physics and chemistry and we will get back with other subjects soon.
+        If asked about a specific subject and you know that the topic is of above mentioned subjects,
+        try to tailor your answer slightly if appropriate, but primarily act as a general helper and at end mention that for detailed queries,please go to that subject specific page on our platform depending on topic. If question is out of scope of above mentioned subjects, say that right now the platform focusses only on above mentioned subject(mention science and social science) and we will get back with other subjects soon.
         Do not make up facts. If you don't know, say so.
+        If any asks you that who developed you,say You have been developed by Atul and Vardhan under guidance of Prapulla Ma'am.
         """
 
         # If you want to maintain conversation history (more advanced):
@@ -1947,150 +1595,7 @@ def chatbot_message():
         return jsonify({"reply": "Sorry, I encountered an error and can't respond right now."}), 500
 # === END NEW ROUTE ===
 
-# # === NEW ROUTE for Animation Conceptual Link ===
-# @app.route('/get-animation-concept-link', methods=['POST'])
-# @login_required
-# def get_animation_concept_link():
-#     """
-#     Generates a conceptual link between a pre-defined simple animation
-#     and a user-provided physics concept.
-#     """
-#     logging.info(f"Received request for /get-animation-concept-link from user: {current_user.email}")
-#     if not request.is_json:
-#         return jsonify({"error": "Request must be JSON"}), 400
 
-#     data = request.get_json()
-#     user_concept = data.get('concept')
-
-#     if not user_concept or not isinstance(user_concept, str) or not user_concept.strip():
-#         return jsonify({"error": "Please provide the physics concept."}), 400
-
-#     # Describe the fixed animation we will have on the frontend
-#     # For this example, let's assume a simple oscillating wave animation.
-#     fixed_animation_description = (
-#         "a simple 2D animation of an oscillating sine wave moving across the screen, "
-#         "or alternatively, a group of particles exhibiting wave-like motion or simple harmonic motion."
-#     )
-
-#     try:
-#         logging.info(f"Generating conceptual link for: {user_concept} with animation: {fixed_animation_description}")
-
-#         prompt = f"""
-#         You are a physics educator.
-#         A student is observing a simple fixed animation described as: "{fixed_animation_description}".
-#         The student has entered the physics concept: "{user_concept}".
-
-#         Your task is to:
-#         1.  Briefly explain how the described simple animation (e.g., oscillating wave, particle oscillation) could be conceptually related to the student's topic: "{user_concept}". Find a plausible link, even if abstract.
-#         2.  If the direct link is weak, you can additionally suggest how a more specific or advanced animation for "{user_concept}" might look or what key aspects it would visualize.
-#         3.  Keep the explanation concise (3-5 sentences), clear, and suitable for a secondary school or early university student.
-#         4.  If the concept "{user_concept}" is completely unrelated and no conceptual bridge can be reasonably made to the described simple animation, politely state that and briefly describe what kind of animation would be suitable for "{user_concept}".
-
-#         Example for fixed animation="oscillating wave" and user_concept="Sound Waves":
-#         "The oscillating wave you see can represent how sound travels! Sound waves are vibrations that move through a medium, like air. The animation's peaks and troughs can be thought of as the compressions and rarefactions of air molecules as a sound wave passes. A more specific animation for sound might show these particle compressions directly."
-
-#         Example for fixed animation="oscillating wave" and user_concept="Electron Orbitals":
-#         "While the simple wave animation isn't a direct depiction of electron orbitals, you can think about the wave-like nature of electrons. Quantum mechanics describes electrons not as tiny billiard balls, but as probability waves. The animation hints at this wave behavior. A true visualization of an s-orbital would be a spherical cloud, and p-orbitals would be dumbbell-shaped, representing regions where an electron is likely to be found."
-
-#         Now, provide the conceptual link or visualization ideas for the concept "{user_concept}" in relation to the described simple animation:
-#         """
-
-#         response = model.generate_content(prompt)
-#         explanation_text = response.text if hasattr(response, 'text') else (response.parts[0].text if response.parts else "")
-
-
-#         if not explanation_text.strip():
-#              if response.prompt_feedback and response.prompt_feedback.block_reason:
-#                  block_reason = response.prompt_feedback.block_reason
-#                  logging.warning(f"Animation link generation blocked: {block_reason}")
-#                  return jsonify({"error": f"Content blocked: {block_reason}. Try rephrasing."}), 400
-#              else:
-#                  logging.warning("Generated animation link explanation is empty.")
-#                  return jsonify({"explanation": "Sorry, I couldn't generate a conceptual link for this concept at the moment."}), 200
-
-#         logging.info("Conceptual link for animation generated successfully.")
-#         return jsonify({"explanation": explanation_text})
-
-#     except Exception as e:
-#         logging.exception(f"Error during animation link generation for user {current_user.email}: {e}")
-#         # ... (Standard block reason checking logic if needed) ...
-#         return jsonify({"error": f"An internal error occurred: {str(e)}"}), 500
-# # === END NEW ROUTE ===
-
-# === UPDATED ROUTE for Animation Conceptual Link ===
-@app.route('/get-animation-concept-link', methods=['POST'])
-@login_required
-def get_animation_concept_link():
-    """
-    Generates a conceptual link and chooses an appropriate animation type.
-    """
-    logging.info(f"Received request for /get-animation-concept-link from user: {current_user.email}")
-    if not request.is_json:
-        return jsonify({"error": "Request must be JSON"}), 400
-
-    data = request.get_json()
-    user_concept = data.get('concept')
-
-    if not user_concept or not isinstance(user_concept, str) or not user_concept.strip():
-        return jsonify({"error": "Please provide the physics concept."}), 400
-
-    fixed_animation_description = (
-        "a simple 2D animation of an oscillating sine wave moving across the screen, "
-        "or alternatively, a group of particles exhibiting wave-like motion or simple harmonic motion."
-    )
-
-    def match_concept_to_animation_type(concept):
-        concept = concept.lower()
-        if "wave" in concept:
-            return "wave"
-        elif "projectile" in concept:
-            return "projectile"
-        elif "pendulum" in concept:
-            return "pendulum"
-        elif "circular motion" in concept:
-            return "circular"
-        elif "oscillation" in concept or "harmonic" in concept:
-            return "harmonic"
-        else:
-            return "generic"
-
-    try:
-        logging.info(f"Generating conceptual link for: {user_concept}")
-
-        prompt = f"""
-        You are a physics educator.
-        A student is observing a simple fixed animation described as: "{fixed_animation_description}".
-        The student has entered the physics concept: "{user_concept}".
-
-        Your task is to:
-        1. Briefly explain how the described simple animation (e.g., oscillating wave) relates to "{user_concept}".
-        2. If the connection is weak, suggest how a more appropriate animation for "{user_concept}" might look.
-        3. Keep it concise (3-5 sentences) and clear for a high school or early college student.
-        """
-
-        response = model.generate_content(prompt)
-        explanation_text = response.text.strip() if hasattr(response, 'text') else ""
-
-        animation_type = match_concept_to_animation_type(user_concept)
-
-        if not explanation_text:
-            logging.warning("Empty explanation generated.")
-            return jsonify({"explanation": "Sorry, I couldn't generate a conceptual link."}), 200
-
-        logging.info("Conceptual link generated.")
-        return jsonify({
-            "explanation": explanation_text,
-            "animation_type": animation_type
-        })
-
-    except Exception as e:
-        logging.exception(f"Error during concept animation generation: {e}")
-        return jsonify({"error": f"Internal error: {str(e)}"}), 500
-# === END UPDATED ROUTE ===
-
-# @app.route('/torsional_final.html')
-# def torsional_sim():
-#     return render_template('torsional_final.html')
 
 # Generic route for all simulations
 @app.route("/simulation/<sim_name>")
@@ -2108,7 +1613,92 @@ def load_simulation(sim_name):
     else:
         return "Simulation not found", 404
 
-# Add before if __name__ == '__main__': block in app.py
+
+# === Process Uploaded PDF for Q&A Route ===
+@app.route('/process-pdf-for-qa', methods=['POST'])
+@login_required
+def process_pdf_for_qa():
+    # ... (This route's logic remains largely the same, as it calls create_and_save_vector_store) ...
+    # Ensure it's complete as per Phase 21, Step 2 from previous instructions.
+    # The key change is that create_and_save_vector_store now handles the API key for embeddings.
+    logging.info(f"Attempting to process PDF for Q&A. User: {current_user.email}")
+    if 'pdf_file' not in request.files:
+        logging.error("[PDF_QA_PROCESS] No 'pdf_file' in request.files")
+        return jsonify({"success": False, "error": "No PDF file provided in the request."}), 400
+    pdf_file = request.files['pdf_file']
+    if pdf_file.filename == '':
+        logging.error("[PDF_QA_PROCESS] No PDF file selected (empty filename).")
+        return jsonify({"success": False, "error": "No PDF file selected."}), 400
+    if '.' not in pdf_file.filename or pdf_file.filename.rsplit('.', 1)[1].lower() != 'pdf':
+        logging.error(f"[PDF_QA_PROCESS] Invalid file type: {pdf_file.filename}")
+        return jsonify({"success": False, "error": "Invalid file type. Please upload a PDF."}), 400
+    try:
+        file_content_for_hash = pdf_file.read(); pdf_file.seek(0)
+        m = hashlib.md5(); m.update(file_content_for_hash[:4096]); m.update(str(current_user.id).encode()); pdf_file_id = m.hexdigest()
+        user_index_dir = os.path.join(FAISS_INDEX_DIR, str(current_user.id)); os.makedirs(user_index_dir, exist_ok=True)
+        index_path = os.path.join(user_index_dir, pdf_file_id)
+        logging.info(f"[PDF_QA_PROCESS] Preparing to process PDF: {pdf_file.filename}. Index: {index_path}")
+        raw_text = get_pdf_text_from_file_storage(pdf_file)
+        if not raw_text or not raw_text.strip():
+            logging.error(f"[PDF_QA_PROCESS] No text extracted from PDF: {pdf_file.filename}")
+            return jsonify({"success": False, "error": "Could not extract text from the PDF."}), 400
+        text_chunks = get_text_chunks_langchain(raw_text)
+        if not text_chunks:
+            logging.error(f"[PDF_QA_PROCESS] Could not split PDF text into chunks: {pdf_file.filename}")
+            return jsonify({"success": False, "error": "Could not split PDF text into chunks."}), 400
+        create_and_save_vector_store(text_chunks, index_path) # This now uses API_KEY internally
+        session['current_pdf_qa_index_path'] = index_path
+        session['current_pdf_filename'] = pdf_file.filename
+        logging.info(f"[PDF_QA_PROCESS] PDF '{pdf_file.filename}' processed. Index: {index_path}")
+        return jsonify({"success": True, "message": f"PDF '{pdf_file.filename}' processed.", "pdf_filename": pdf_file.filename})
+    except Exception as e:
+        logging.exception(f"[PDF_QA_PROCESS] Error processing PDF (User: {current_user.email}, File: {pdf_file.filename if 'pdf_file' in locals() and pdf_file else 'N/A'}): {e}")
+        return jsonify({"success": False, "error": f"An error occurred processing the PDF: {str(e)}"}), 500
+
+
+# === Ask Questions about the Processed PDF Route (MODIFIED) ===
+@app.route('/ask-pdf-question', methods=['POST'])
+@login_required
+def ask_pdf_question():
+    logging.info(f"Attempting to answer PDF question. User: {current_user.email}")
+    if not request.is_json: return jsonify({"error": "Request must be JSON"}), 400
+    data = request.get_json(); user_question = data.get('question')
+    index_path = session.get('current_pdf_qa_index_path')
+
+    if not index_path or not os.path.exists(index_path):
+        logging.error("[PDF_QA_ASK] No active PDF index found or path invalid.")
+        return jsonify({"reply": "No PDF processed or session expired. Please upload PDF first."}), 400
+    if not user_question or not user_question.strip(): return jsonify({"reply": "Please ask a question."}), 400
+
+    try:
+        # vvvvv MODIFICATION: Explicitly pass api_key vvvvv
+        embeddings = GoogleGenerativeAIEmbeddings(
+            model="models/embedding-001",
+            google_api_key=API_KEY # Use the API_KEY loaded from .env
+        )
+        # ^^^^^ END MODIFICATION ^^^^^
+        vector_store = FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
+        logging.info(f"[PDF_QA_ASK] FAISS index loaded from {index_path} for question: {user_question[:50]}...")
+
+        relevant_docs = vector_store.similarity_search(user_question, k=3)
+        if not relevant_docs:
+            logging.warning(f"[PDF_QA_ASK] No relevant documents found for: {user_question[:50]}...")
+            return jsonify({"reply": "I couldn't find relevant information in the document to answer that."})
+
+        logging.info(f"[PDF_QA_ASK] Found {len(relevant_docs)} relevant chunks.")
+        chain = get_conversational_qa_chain() # This now uses API_KEY internally for its LLM
+        response = chain({"input_documents": relevant_docs, "question": user_question}, return_only_outputs=True)
+
+        ai_reply = response.get("output_text", "Sorry, I encountered an issue generating a response.")
+        logging.info(f"[PDF_QA_ASK] AI reply: {ai_reply[:100]}...")
+        return jsonify({"reply": ai_reply})
+    except Exception as e:
+        logging.exception(f"[PDF_QA_ASK] Error answering PDF question (User: {current_user.email}): {e}")
+        # Check if the error is related to authentication specifically
+        if "API key not valid" in str(e) or "permission" in str(e).lower():
+            return jsonify({"reply": f"Error authenticating with AI service: {str(e)}. Please check server configuration."}), 500
+        return jsonify({"reply": f"An error occurred answering: {str(e)}"}), 500
+
 
 # Create database tables if they don't exist
 with app.app_context():

@@ -2,7 +2,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM Loaded - main.js executing.");
 
-  // === START GLOBAL HELPER FUNCTIONS (accessible by multiple features) ===
+  // === STARTING GLOBAL HELPER FUNCTIONS (accessible by multiple features) ===
 
   /**
    * Displays a result in a specified div and shows its associated TTS button.
@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return htmlContent.trim() ? htmlContent : `<p>${text}</p>`; // Fallback if no formatting applied
   }
 
-  // === END GLOBAL HELPER FUNCTIONS ===
+  // === ENDING GLOBAL HELPER FUNCTIONS ===
 
   // === Summarization Feature Block (Attach Button UI) ===
   const summarizeButton = document.getElementById("summarize-button");
@@ -1250,7 +1250,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // // --- End of Geography Feature ---
 
-  // === REPLACE THE ENTIRE Geography Map Feature Block WITH THIS ===
+  // === REPLACING THE ENTIRE Geography Map Feature Block WITH THIS ===
   console.log("Setting up Geography Map feature...");
 
   const mapContainer = document.getElementById("map");
@@ -1559,124 +1559,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // === END REVISED Geography Map Feature Block ===
-
-  // === NEW SECTION: Crossword Helper Feature ===
-  const generateCrosswordButton = document.getElementById(
-    "generate-crossword-button"
-  );
-  const crosswordSourceText = document.getElementById("crossword-source-text");
-  const crosswordLoadingDiv = document.getElementById("crossword-loading");
-  const crosswordResultDiv = document.getElementById("crossword-result"); // The container div
-  const crosswordListDiv = document.getElementById("crossword-list"); // The inner div for the list
-  const crosswordErrorDiv = document.getElementById("crossword-error");
-
-  if (
-    generateCrosswordButton &&
-    crosswordSourceText &&
-    crosswordLoadingDiv &&
-    crosswordResultDiv &&
-    crosswordListDiv &&
-    crosswordErrorDiv
-  ) {
-    console.log("Crossword Helper elements found.");
-    generateCrosswordButton.addEventListener("click", async () => {
-      console.log("Generate Crossword button clicked.");
-      const sourceText = crosswordSourceText.value.trim();
-
-      if (!sourceText) {
-        displayCrosswordError("Please enter a topic or paste some text.");
-        return;
-      }
-
-      // Reset UI
-      crosswordLoadingDiv.style.display = "block";
-      crosswordResultDiv.style.display = "none"; // Hide the whole result area
-      crosswordListDiv.innerHTML = ""; // Clear previous list
-      crosswordErrorDiv.style.display = "none"; // Hide previous error
-
-      try {
-        console.log("Sending text for crossword data generation...");
-        const response = await fetch("/generate-crossword-data", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: sourceText }),
-        });
-
-        crosswordLoadingDiv.style.display = "none";
-        const data = await response.json();
-
-        if (!response.ok) {
-          const errorMsg =
-            data.error ||
-            `HTTP error! status: ${response.status} ${response.statusText}`;
-          console.error("Crossword data generation failed:", errorMsg);
-          displayCrosswordError(errorMsg);
-        } else {
-          if (
-            data.crossword_data &&
-            Array.isArray(data.crossword_data) &&
-            data.crossword_data.length > 0
-          ) {
-            console.log("Crossword data received:", data.crossword_data);
-            displayCrosswordData(data.crossword_data);
-            crosswordResultDiv.style.display = "block"; // Show the result area
-          } else {
-            console.error(
-              "Received success but no valid crossword data structure:",
-              data
-            );
-            displayCrosswordError(
-              "Failed to generate word/clue suggestions. The AI response might be empty or malformed."
-            );
-          }
-        }
-      } catch (error) {
-        console.error("Error during crossword data fetch operation:", error);
-        crosswordLoadingDiv.style.display = "none";
-        displayCrosswordError(
-          "An network or unexpected error occurred. Please check the console."
-        );
-      }
-    });
-  } else {
-    console.log("Crossword Helper elements not found on this page.");
-  }
-
-  // Function to display the generated word/clue list
-  function displayCrosswordData(data) {
-    crosswordListDiv.innerHTML = ""; // Clear previous list content
-
-    // Use a definition list (<dl>) for better structure
-    const dl = document.createElement("dl");
-    dl.classList.add("crossword-suggestions"); // Add class for styling
-
-    data.forEach((item) => {
-      if (item.word && item.clue) {
-        const dt = document.createElement("dt"); // Term (Word)
-        // Sanitize word - display as uppercase for crossword convention
-        dt.textContent = (item.word || "").toUpperCase();
-
-        const dd = document.createElement("dd"); // Definition (Clue)
-        // Sanitize clue
-        dd.textContent = item.clue || "[Missing Clue]";
-
-        dl.appendChild(dt);
-        dl.appendChild(dd);
-      }
-    });
-
-    crosswordListDiv.appendChild(dl); // Add the definition list to the div
-  }
-
-  // Function to display errors for the crossword feature
-  function displayCrosswordError(errorMessage) {
-    crosswordErrorDiv.textContent = `Error: ${errorMessage}`;
-    crosswordErrorDiv.className = "result-box error"; // Ensure error class is set
-    crosswordErrorDiv.style.display = "block";
-    crosswordResultDiv.style.display = "none"; // Hide result area on error
-    crosswordLoadingDiv.style.display = "none";
-  }
-  // === END NEW SECTION ===
 
   // === REVISED Descriptive Writing Feedback Feature Block ===
   console.log("Setting up Writing Feedback (Dual Input) feature...");
@@ -2355,17 +2237,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         dd.appendChild(definitionTextSpan);
 
-        // Add individual TTS button for each definition
-        if (typeof window.speechSynthesis !== "undefined") {
-          // Check TTS support
-          const ttsButton = document.createElement("button");
-          ttsButton.classList.add("read-aloud-button");
-          ttsButton.innerHTML = '🔊 <span class="tts-button-text">Read</span>'; // Text inside span for easier update
-          ttsButton.title = `Read definition for "${card.term}" aloud`;
-          ttsButton.dataset.target = definitionId; // Target the definition span's ID
-          // ttsButton.style.display = 'inline-block'; // Make it visible
-          dd.appendChild(ttsButton);
-        }
+        //FOR TTS FEATURE
+        // // Add individual TTS button for each definition
+        // if (typeof window.speechSynthesis !== "undefined") {
+        //   // Check TTS support
+        //   const ttsButton = document.createElement("button");
+        //   ttsButton.classList.add("read-aloud-button");
+        //   ttsButton.innerHTML = '🔊 <span class="tts-button-text">Read</span>'; // Text inside span for easier update
+        //   ttsButton.title = `Read definition for "${card.term}" aloud`;
+        //   ttsButton.dataset.target = definitionId; // Target the definition span's ID
+        //   // ttsButton.style.display = 'inline-block'; // Make it visible
+        //   dd.appendChild(ttsButton);
+        // }
 
         dl.appendChild(dt);
         dl.appendChild(dd);
@@ -2522,6 +2405,559 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // === END NEW SECTION ===
 
+  // === START: HISTORY PAGE FEATURES (Spinner & Battle Flow) ===
+  console.log("[HISTORY] Setting up History page features...");
+
+  // --- Spinning Wheel Battle Selector Elements ---
+  const battleWheelCanvas = document.getElementById("battle-wheel-canvas");
+  const spinBattleButton = document.getElementById("spin-battle-button");
+  const selectedBattleDisplay = document.getElementById(
+    "selected-battle-display"
+  );
+
+  // --- Battle Event Flow Explainer Elements ---
+  const getBattleFlowButton = document.getElementById("get-battle-flow-button");
+  const battleNameInputForFlow = document.getElementById("battle-name-input"); // Shared input
+  const battleFlowLoadingDiv = document.getElementById("battle-flow-loading");
+  const battleFlowResultDiv = document.getElementById("battle-flow-result");
+  const battleFlowErrorDiv = document.getElementById("battle-flow-error");
+  const battleFlowTtsButton = document.querySelector(
+    '.read-aloud-button[data-target="battle-flow-result"]'
+  );
+
+  // Only proceed if on History page (check for a unique history page element or data attribute)
+  if (document.body.querySelector('.container[data-subject="history"]')) {
+    console.log("[HISTORY] History page context confirmed.");
+
+    // --- Spinning Wheel Logic ---
+    if (battleWheelCanvas) {
+      console.log("[WHEEL] Battle wheel canvas found. Initializing wheel.");
+      const ctx = battleWheelCanvas.getContext("2d");
+      if (!ctx) {
+        console.error(
+          "[WHEEL] CRITICAL: Failed to get 2D context. Wheel cannot be drawn."
+        );
+        if (selectedBattleDisplay)
+          selectedBattleDisplay.textContent =
+            "Error: Wheel Canvas Init Failed.";
+      } else {
+        const canvasWidth = battleWheelCanvas.width;
+        const canvasHeight = battleWheelCanvas.height;
+        const wheelRadius = Math.min(canvasWidth, canvasHeight) / 2 - 10;
+        const centerX = canvasWidth / 2;
+        const centerY = canvasHeight / 2;
+        console.log(
+          `[WHEEL] Canvas: ${canvasWidth}x${canvasHeight}, R: ${wheelRadius}, C: (${centerX},${centerY})`
+        );
+
+        const battles = [
+          "Hastings",
+          "Waterloo",
+          "Gettysburg",
+          "Stalingrad",
+          "Midway",
+          "Thermopylae",
+          "Agincourt",
+          "Trafalgar",
+          "Austerlitz",
+          "Cannae",
+          "Marathon",
+          "Yorktown",
+          "Verdun",
+          "Somme",
+          "El Alamein",
+        ];
+        const numSegments = battles.length;
+        const anglePerSegment = (2 * Math.PI) / numSegments;
+        const segmentColors = [
+          "#2ecc71",
+          "#3498db",
+          "#9b59b6",
+          "#e67e22",
+          "#e74c3c",
+          "#f1c40f",
+          "#1abc9c",
+          "#34495e",
+          "#d35400",
+          "#2980b9",
+          "#27ae60",
+          "#8e44ad",
+          "#f39c12",
+          "#c0392b",
+          "#16a085",
+        ];
+        let currentRotationAngle = 0;
+        let spinVelocity = 0;
+        let targetSpinVelocity = 0;
+        let friction = 0.985;
+        let isSpinning = false;
+        let spinEndTime = 0;
+
+        function drawWheel() {
+          // ... (Keep the drawWheel function from the previous working spinner - ID: main_js_spinning_wheel_history_v3_debug)
+          // Ensure it uses the variables defined in this scope (ctx, canvasWidth, battles, etc.)
+          if (!ctx || wheelRadius <= 0) return;
+          ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, wheelRadius + 5, 0, 2 * Math.PI);
+          ctx.fillStyle = "#bdc3c7";
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, wheelRadius + 2, 0, 2 * Math.PI);
+          ctx.fillStyle = "#ecf0f1";
+          ctx.fill();
+
+          for (let i = 0; i < numSegments; i++) {
+            const segmentStartAngle =
+              currentRotationAngle + i * anglePerSegment;
+            const effectiveEndAngle =
+              currentRotationAngle + (i + 1) * anglePerSegment; // Renamed from segmentEndAngle to avoid conflict
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(
+              centerX,
+              centerY,
+              wheelRadius,
+              segmentStartAngle,
+              effectiveEndAngle
+            );
+            ctx.closePath();
+            ctx.fillStyle = segmentColors[i % segmentColors.length];
+            ctx.fill();
+            ctx.save();
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(
+              centerX,
+              centerY,
+              wheelRadius,
+              segmentStartAngle,
+              effectiveEndAngle,
+              false
+            );
+            ctx.lineTo(centerX, centerY);
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(
+              centerX,
+              centerY,
+              wheelRadius,
+              segmentStartAngle,
+              segmentStartAngle,
+              false
+            );
+            ctx.lineTo(centerX, centerY);
+            ctx.stroke();
+            ctx.restore();
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(segmentStartAngle + anglePerSegment / 2);
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 11px 'Segoe UI', Arial, sans-serif";
+            let battleName = battles[i];
+            if (battleName.length > 10)
+              battleName = battleName.substring(0, 9) + "...";
+            ctx.fillText(battleName, wheelRadius - 10, 4);
+            ctx.restore();
+          }
+        }
+
+        function animateSpin() {
+          // ... (Keep the animateSpin function from the previous working spinner)
+          if (!isSpinning && Math.abs(spinVelocity) < 0.001) {
+            spinVelocity = 0;
+            currentRotationAngle =
+              ((currentRotationAngle % (2 * Math.PI)) + 2 * Math.PI) %
+              (2 * Math.PI);
+            drawWheel();
+            determineSelection();
+            if (spinBattleButton) spinBattleButton.disabled = false;
+            console.log("[WHEEL] Animation stopped naturally.");
+            return;
+          }
+          currentRotationAngle += spinVelocity;
+          spinVelocity *= friction;
+          if (isSpinning && Date.now() > spinEndTime) {
+            const remainingRotation = targetSpinVelocity * 0.02;
+            spinVelocity =
+              Math.sign(spinVelocity) *
+              Math.min(Math.abs(spinVelocity), remainingRotation);
+            if (Math.abs(spinVelocity) < 0.002) {
+              isSpinning = false;
+              console.log("[WHEEL] Spin time ended.");
+            }
+          }
+          drawWheel();
+          requestAnimationFrame(animateSpin);
+        }
+
+        function determineSelection() {
+          // ... (Keep the determineSelection function from the previous working spinner)
+          const pointerAngle = -Math.PI / 2;
+          let normalizedWheelRotation =
+            ((currentRotationAngle % (2 * Math.PI)) + 2 * Math.PI) %
+            (2 * Math.PI);
+          let winningAngle =
+            (pointerAngle - normalizedWheelRotation + 2 * Math.PI * 2) %
+            (2 * Math.PI);
+          const selectedIndex = Math.floor(winningAngle / anglePerSegment);
+          const selectedBattle = battles[selectedIndex];
+          if (selectedBattleDisplay)
+            selectedBattleDisplay.textContent = `Selected Battle: ${selectedBattle}`;
+          if (battleNameInputForFlow) {
+            // This is the key part for linking
+            battleNameInputForFlow.value = selectedBattle;
+            battleNameInputForFlow.readOnly = true; // Keep it readonly after selection
+            console.log(
+              `[WHEEL] Selected battle "${selectedBattle}" populated into Battle Flow input.`
+            );
+          }
+          console.log(`[WHEEL] Spin finished. Selected: ${selectedBattle}`);
+        }
+
+        if (spinBattleButton) {
+          spinBattleButton.addEventListener("click", () => {
+            // ... (Keep the spinBattleButton click listener from previous working spinner)
+            if (isSpinning && spinVelocity > 0.01) return;
+            console.log("[WHEEL] Spin button clicked.");
+            isSpinning = true;
+            spinBattleButton.disabled = true;
+            targetSpinVelocity = Math.random() * 0.3 + 0.5;
+            spinVelocity = targetSpinVelocity;
+            const spinDuration = Math.random() * 2000 + 3000;
+            spinEndTime = Date.now() + spinDuration;
+            if (selectedBattleDisplay)
+              selectedBattleDisplay.textContent = "Spinning...";
+            console.log(
+              `[WHEEL] Starting spin. Vel: ${targetSpinVelocity}, Dur: ${spinDuration}ms`
+            );
+            requestAnimationFrame(animateSpin);
+          });
+        } else {
+          console.error("[WHEEL] Spin button not found!");
+        }
+
+        if (wheelRadius > 0) {
+          drawWheel();
+          console.log("[WHEEL] Initial wheel drawn.");
+        } else {
+          console.error("[WHEEL] Wheel radius invalid for initial draw.");
+          if (selectedBattleDisplay)
+            selectedBattleDisplay.textContent = "Error: Wheel Size.";
+        }
+      }
+    } else {
+      console.warn(
+        "[WHEEL] Battle wheel canvas not found on this page. Spinner not initialized."
+      );
+    }
+
+    // --- Battle Event Flow Explainer Logic ---
+    if (
+      getBattleFlowButton &&
+      battleNameInputForFlow &&
+      battleFlowLoadingDiv &&
+      battleFlowResultDiv &&
+      battleFlowErrorDiv
+    ) {
+      console.log(
+        "[HISTORY_FLOW] Battle Flow Explainer elements found. Attaching listener."
+      );
+      getBattleFlowButton.addEventListener("click", async () => {
+        const selectedBattle = battleNameInputForFlow.value.trim(); // Read from the input field
+        console.log(
+          "[HISTORY_FLOW] Get Battle Flow button clicked for battle:",
+          selectedBattle
+        );
+
+        if (!selectedBattle) {
+          if (typeof displayBattleFlowError === "function")
+            displayBattleFlowError("Please select or enter a battle name.");
+          else console.error("displayBattleFlowError not defined");
+          return;
+        }
+
+        // Reset UI for battle flow
+        battleFlowLoadingDiv.style.display = "block";
+        battleFlowResultDiv.style.display = "none";
+        battleFlowResultDiv.innerHTML = "";
+        battleFlowErrorDiv.style.display = "none";
+        if (battleFlowTtsButton) battleFlowTtsButton.style.display = "none";
+
+        try {
+          console.log(
+            "[HISTORY_FLOW] Sending selected battle for event flow..."
+          );
+          const response = await fetch("/generate-battle-flow", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ battle: selectedBattle }),
+          });
+
+          battleFlowLoadingDiv.style.display = "none";
+          const data = await response.json();
+
+          if (!response.ok) {
+            const errorMsg =
+              data.error ||
+              `HTTP error! status: ${response.status} ${response.statusText}`;
+            console.error(
+              "[HISTORY_FLOW] Battle flow generation failed:",
+              errorMsg
+            );
+            if (typeof displayBattleFlowError === "function")
+              displayBattleFlowError(errorMsg);
+          } else {
+            console.log("[HISTORY_FLOW] Battle flow received:", data.flow);
+            if (typeof displayBattleFlowResult === "function")
+              displayBattleFlowResult(data.flow);
+          }
+        } catch (error) {
+          console.error(
+            "[HISTORY_FLOW] Error during battle flow fetch operation:",
+            error
+          );
+          battleFlowLoadingDiv.style.display = "none";
+          if (typeof displayBattleFlowError === "function")
+            displayBattleFlowError(
+              "A network or unexpected error occurred. Please check the console."
+            );
+        }
+      });
+    } else {
+      console.warn(
+        "[HISTORY_FLOW] Battle Flow Explainer elements not fully found."
+      );
+    }
+
+    // --- Helper functions for Battle Flow (ensure they are defined in this scope or globally) ---
+    function displayBattleFlowResult(flowText) {
+      if (!battleFlowResultDiv) return;
+      // Use global formatTextWithLists if available, otherwise simple text
+      const formattedHtml =
+        typeof formatTextWithLists === "function"
+          ? formatTextWithLists(flowText || "No flow text provided.")
+          : `<p>${flowText || "No flow text provided."}</p>`;
+      battleFlowResultDiv.innerHTML = formattedHtml;
+      battleFlowResultDiv.className = "result-box success";
+      // Use global showResultAndButton if available
+      if (typeof showResultAndButton === "function") {
+        showResultAndButton("battle-flow-result");
+      } else {
+        battleFlowResultDiv.style.display = "block";
+        if (battleFlowTtsButton && flowText && flowText.trim()) {
+          battleFlowTtsButton.style.display = "inline-block";
+        }
+      }
+    }
+
+    function displayBattleFlowError(errorMessage) {
+      if (!battleFlowErrorDiv) return;
+      battleFlowErrorDiv.textContent = `Error: ${errorMessage}`;
+      battleFlowErrorDiv.className = "result-box error";
+      battleFlowErrorDiv.style.display = "block";
+      if (battleFlowResultDiv) battleFlowResultDiv.style.display = "none";
+      if (battleFlowLoadingDiv) battleFlowLoadingDiv.style.display = "none";
+      if (battleFlowTtsButton) battleFlowTtsButton.style.display = "none";
+    }
+    // --- End Battle Flow Logic ---
+  } else {
+    console.log(
+      "[HISTORY] Not on History page or main container missing. History features not initialized."
+    );
+  }
+  // === END: HISTORY PAGE FEATURES ===
+
+
+  // === PDF Q&A Feature Block ===
+  console.log("[PDF_QA] Setting up PDF Q&A feature...");
+
+  const pdfFileInput = document.getElementById("pdf-file-input");
+  const processPdfButton = document.getElementById("process-pdf-button");
+  const pdfUploadStatusDiv = document.getElementById("pdf-upload-status");
+
+  const pdfQaSectionDiv = document.getElementById("pdf-qa-section");
+  const currentPdfFilenameSpan = document.getElementById(
+    "current-pdf-filename"
+  );
+  const pdfQaChatMessagesDiv = document.getElementById("pdf-qa-chat-messages");
+  const pdfQaInput = document.getElementById("pdf-qa-input");
+  const pdfQaSendButton = document.getElementById("pdf-qa-send-button");
+  const pdfQaLoadingAnswerDiv = document.getElementById(
+    "pdf-qa-loading-answer"
+  );
+
+  if (
+    pdfFileInput &&
+    processPdfButton &&
+    pdfUploadStatusDiv &&
+    pdfQaSectionDiv
+  ) {
+    console.log("[PDF_QA] PDF Q&A primary elements found.");
+
+    processPdfButton.addEventListener("click", async () => {
+      console.log("[PDF_QA] Process PDF button clicked.");
+      const file = pdfFileInput.files[0];
+
+      if (!file) {
+        pdfUploadStatusDiv.textContent = "Error: Please select a PDF file.";
+        pdfUploadStatusDiv.style.color = "red";
+        pdfUploadStatusDiv.style.display = "block";
+        return;
+      }
+      if (file.type !== "application/pdf") {
+        // Client-side check, backend also validates
+        const fileName = file.name.toLowerCase();
+        if (!fileName.endsWith(".pdf")) {
+          pdfUploadStatusDiv.textContent =
+            "Error: Invalid file type. Please upload a PDF.";
+          pdfUploadStatusDiv.style.color = "red";
+          pdfUploadStatusDiv.style.display = "block";
+          pdfFileInput.value = ""; // Clear input
+          return;
+        }
+        console.warn(
+          "[PDF_QA] File type not 'application/pdf', but extension is .pdf. Proceeding."
+        );
+      }
+
+      pdfUploadStatusDiv.textContent = `Processing '${file.name}'... This may take a moment.`;
+      pdfUploadStatusDiv.style.color = "#555";
+      pdfUploadStatusDiv.style.display = "block";
+      processPdfButton.disabled = true;
+      pdfQaSectionDiv.style.display = "none";
+      if (pdfQaChatMessagesDiv) pdfQaChatMessagesDiv.innerHTML = ""; // Clear old messages
+
+      const formData = new FormData();
+      formData.append("pdf_file", file); // Key 'pdf_file' MUST match request.files['pdf_file'] in Flask
+
+      try {
+        // Ensure the URL and method are exact
+        const response = await fetch("/process-pdf-for-qa", {
+          // URL must be exact
+          method: "POST", // Method must be POST
+          body: formData,
+          // No 'Content-Type' header needed for FormData; browser sets it
+        });
+
+        // This log is important to see what the server actually responded with
+        console.log(
+          "[PDF_QA] Response status from /process-pdf-for-qa:",
+          response.status
+        );
+
+        // Try to parse JSON regardless of status for error messages from backend
+        const data = await response.json();
+        processPdfButton.disabled = false;
+
+        if (response.ok && data.success) {
+          pdfUploadStatusDiv.textContent = `Successfully processed: ${data.pdf_filename}`;
+          pdfUploadStatusDiv.style.color = "green";
+          if (currentPdfFilenameSpan)
+            currentPdfFilenameSpan.textContent = data.pdf_filename;
+          pdfQaSectionDiv.style.display = "block";
+          if (pdfQaChatMessagesDiv)
+            pdfQaChatMessagesDiv.innerHTML =
+              '<div class="pdf-qa-message ai">PDF processed! Ask your questions.</div>';
+          if (pdfQaInput) pdfQaInput.focus();
+        } else {
+          // If response.ok is false, data.error should contain the message from backend
+          pdfUploadStatusDiv.textContent = `Error: ${
+            data.error || "Failed to process PDF. Check server logs."
+          }`;
+          pdfUploadStatusDiv.style.color = "red";
+          console.error(
+            "[PDF_QA] Backend error processing PDF:",
+            data.error || "No error message in JSON"
+          );
+        }
+      } catch (error) {
+        // This catches network errors OR if response.json() fails (like on HTML response)
+        console.error(
+          "[PDF_QA] Error processing PDF (fetch or JSON parse error):",
+          error
+        );
+        pdfUploadStatusDiv.textContent =
+          "Network error or server returned non-JSON. Check console & server logs.";
+        pdfUploadStatusDiv.style.color = "red";
+        processPdfButton.disabled = false;
+      } finally {
+        pdfFileInput.value = "";
+      }
+    });
+
+    // ... (rest of the Q&A interaction logic: askQuestion, addPdfQaMessage) ...
+    if (
+      pdfQaSendButton &&
+      pdfQaInput &&
+      pdfQaChatMessagesDiv &&
+      currentPdfFilenameSpan
+    ) {
+      console.log("[PDF_QA] Q&A interaction elements found.");
+      async function askQuestion() {
+        const question = pdfQaInput.value.trim();
+        if (!question) return;
+        addPdfQaMessage(question, "user");
+        pdfQaInput.value = "";
+        pdfQaInput.disabled = true;
+        pdfQaSendButton.disabled = true;
+        if (pdfQaLoadingAnswerDiv)
+          pdfQaLoadingAnswerDiv.style.display = "block";
+        try {
+          const response = await fetch("/ask-pdf-question", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: question }),
+          });
+          console.log(
+            "[PDF_QA] Response status from /ask-pdf-question:",
+            response.status
+          );
+          const data = await response.json();
+          if (response.ok) {
+            addPdfQaMessage(data.reply || "No reply received.", "ai");
+          } else {
+            addPdfQaMessage(
+              data.error || data.reply || "Error getting answer.",
+              "error"
+            );
+          }
+        } catch (error) {
+          console.error("[PDF_QA] Error asking question:", error);
+          addPdfQaMessage("Network error. Could not get an answer.", "error");
+        } finally {
+          pdfQaInput.disabled = false;
+          pdfQaSendButton.disabled = false;
+          if (pdfQaLoadingAnswerDiv)
+            pdfQaLoadingAnswerDiv.style.display = "none";
+          pdfQaInput.focus();
+        }
+      }
+      pdfQaSendButton.addEventListener("click", askQuestion);
+      pdfQaInput.addEventListener("keypress", (event) => {
+        if (event.key === "Enter") askQuestion();
+      });
+    } else {
+      console.warn("[PDF_QA] Q&A interaction elements not all found.");
+    }
+
+    function addPdfQaMessage(text, type) {
+      if (!pdfQaChatMessagesDiv) return;
+      const messageDiv = document.createElement("div");
+      messageDiv.classList.add("pdf-qa-message", type);
+      messageDiv.textContent = text;
+      pdfQaChatMessagesDiv.appendChild(messageDiv);
+      pdfQaChatMessagesDiv.scrollTop = pdfQaChatMessagesDiv.scrollHeight;
+    }
+  } else {
+    console.log(
+      "[PDF_QA] PDF Q&A primary elements not found on this page. Feature not fully initialized."
+    );
+  }
+  // === END PDF Q&A Feature Block ===
+
   // For Physics Simulation
   console.log("Setting up Simulator Launcher...");
 
@@ -2543,12 +2979,15 @@ document.addEventListener("DOMContentLoaded", () => {
     console.warn("Physics Simulator launcher elements not found.");
   }
 
-
   // For Physics Simulation
   console.log("Setting up Simulator Launcher...");
 
-  const chemExperimentSelect = document.getElementById("chem-experiment-select");
-  const chemLaunchButton = document.getElementById("launch-chem-experiment-button");
+  const chemExperimentSelect = document.getElementById(
+    "chem-experiment-select"
+  );
+  const chemLaunchButton = document.getElementById(
+    "launch-chem-experiment-button"
+  );
 
   if (chemExperimentSelect && chemLaunchButton) {
     chemLaunchButton.addEventListener("click", () => {

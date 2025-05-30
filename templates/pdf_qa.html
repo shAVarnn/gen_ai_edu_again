@@ -1,0 +1,104 @@
+{% extends "base.html" %} {% block title %}PDF Q&A Helper{% endblock %} {% block
+head_extra %}
+<style>
+  #pdf-qa-chat-messages {
+    height: 300px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 10px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+  }
+  .pdf-qa-message {
+    padding: 6px 10px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    max-width: 85%;
+    word-wrap: break-word;
+  }
+  .pdf-qa-message.user {
+    background-color: #d1ecf1; /* Light blue for user */
+    color: #0c5460;
+    margin-left: auto; /* Align right */
+    border-bottom-right-radius: 2px;
+  }
+  .pdf-qa-message.ai {
+    background-color: #e2e3e5; /* Light grey for AI */
+    color: #383d41;
+    margin-right: auto; /* Align left */
+    border-bottom-left-radius: 2px;
+  }
+  .pdf-qa-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    font-weight: bold;
+  }
+  #pdf-qa-input-area {
+    display: flex;
+    gap: 10px;
+  }
+  #pdf-qa-input {
+    flex-grow: 1;
+  }
+  #pdf-upload-status,
+  #current-pdf-info {
+    margin-top: 10px;
+    font-style: italic;
+    color: #555;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container" data-subject="pdf_qa">
+  {# Unique data-subject for this page #}
+  <h1 class="subject-title">Interactive PDF Q&A</h1>
+  <p>
+    Upload a PDF document, and then ask questions based on its content. The AI
+    will answer using only the information within your uploaded PDF.
+  </p>
+
+  <div class="feature-box">
+    <h2>1. Upload PDF Document</h2>
+    <div class="form-group">
+      <label for="pdf-file-input">Choose PDF file:</label>
+      <input
+        type="file"
+        id="pdf-file-input"
+        class="form-control"
+        name="pdf_file_for_qa"
+        accept=".pdf"
+      />
+    </div>
+    <button id="process-pdf-button" class="action-button">Process PDF</button>
+    <div id="pdf-upload-status" class="loading" style="display: none"></div>
+  </div>
+
+  <div id="pdf-qa-section" class="feature-box" style="display: none">
+    <h2>
+      2. Ask Questions About:
+      <span
+        id="current-pdf-filename"
+        style="font-style: normal; color: #2c3e50"
+      ></span>
+    </h2>
+    <div id="pdf-qa-chat-messages"></div>
+    <div id="pdf-qa-input-area">
+      <input
+        type="text"
+        id="pdf-qa-input"
+        class="form-control"
+        placeholder="Ask a question about the PDF..."
+      />
+      <button id="pdf-qa-send-button" class="action-button">Send</button>
+    </div>
+    <div
+      id="pdf-qa-loading-answer"
+      class="loading"
+      style="display: none; margin-top: 10px"
+    >
+      Getting answer...
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts_extra %} {# No extra JS libraries needed
+specifically for this if main.js handles it #} {% endblock %}

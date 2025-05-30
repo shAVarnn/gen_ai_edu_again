@@ -6,3 +6,13 @@ Flask-Login>=0.6
 Flask-WTF>=1.1        # Handles WTForms also
 email-validator>=2.0 # Required by WTForms for email validation for
 pypdf>=3.0.0
+
+
+# Add these for Langchain PDF Q&A
+langchain>=0.1.0
+langchain-google-genai>=0.0.8
+langchain-community>=0.0.15
+faiss-cpu>=1.7.0  # For vector store (CPU version)
+# pypdf is already there for text extraction
+# google-generativeai is already there
+# python-dotenv is already there
