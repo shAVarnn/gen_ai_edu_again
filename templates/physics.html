@@ -1,6 +1,53 @@
 {% extends 'base.html' %} {% block title %}Physics Helper{% endblock %} {% block
-head_extra %} {# Add any CSS specific to this page if needed #} {% endblock %}
-{% block content %}
+head_extra %}
+<style>
+  #pdf-qa-chat-messages {
+    /* Ensure this ID is unique if multiple instances on one page, or scope JS */
+    height: 300px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 10px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+  }
+  .pdf-qa-message {
+    padding: 6px 10px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    max-width: 85%;
+    word-wrap: break-word;
+  }
+  .pdf-qa-message.user {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    margin-left: auto;
+    border-bottom-right-radius: 2px;
+  }
+  .pdf-qa-message.ai {
+    background-color: #e2e3e5;
+    color: #383d41;
+    margin-right: auto;
+    border-bottom-left-radius: 2px;
+  }
+  .pdf-qa-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    font-weight: bold;
+  }
+  #pdf-qa-input-area {
+    display: flex;
+    gap: 10px;
+  }
+  #pdf-qa-input {
+    flex-grow: 1;
+  } /* Ensure this ID is unique or scope JS */
+  /* #pdf-upload-status, #current-pdf-info-{{ subject_name.lower()|replace(' ', '_') }} {
+      margin-top: 10px; font-style: italic; color: #555;
+  } */
+</style>
+{# Add any CSS specific to this page if needed #} {% endblock %} {% block
+content %}
 <div class="container" data-subject="{{ subject_name.lower() }}">
   <h1 class="subject-title">Physics Concepts</h1>
 
@@ -62,6 +109,172 @@ head_extra %} {# Add any CSS specific to this page if needed #} {% endblock %}
       🔊 Read
     </button> -->
   </div>
+
+  <div class="feature-box">
+    <h2><i class="fas fa-file-pdf"></i> Interact with your PDF</h2>
+    <p>
+      Upload a relevant PDF document (e.g., lecture notes, research paper , and
+      then ask questions based on its content. The AI will answer using only the
+      information within your uploaded PDF.
+    </p>
+
+    <div class="form-group">
+      <label for="pdf-file-input-{{ subject_name.lower()|replace(' ', '_') }}"
+        >Choose PDF file:</label
+      >
+      {# Unique ID #}
+      <input
+        type="file"
+        id="pdf-file-input-{{ subject_name.lower()|replace(' ', '_') }}"
+        class="form-control pdf-file-input-control"
+        name="pdf_file_for_qa"
+        accept=".pdf"
+      />
+    </div>
+    <button
+      id="process-pdf-button-{{ subject_name.lower()|replace(' ', '_') }}"
+      class="action-button process-pdf-button-control"
+    >
+      Process PDF
+    </button>
+    {# Unique ID #}
+    <div
+      id="pdf-upload-status-{{ subject_name.lower()|replace(' ', '_') }}"
+      class="loading pdf-upload-status-control"
+      style="display: none"
+    ></div>
+    {# Unique ID #}
+
+    <div
+      id="pdf-qa-section-{{ subject_name.lower()|replace(' ', '_') }}"
+      class="pdf-qa-section-control"
+      style="display: none; margin-top: 20px"
+    >
+      <h3>
+        Ask Questions About:
+        <span
+          id="current-pdf-filename-{{ subject_name.lower()|replace(' ', '_') }}"
+          class="current-pdf-filename-control"
+          style="font-style: normal; color: #2c3e50"
+        ></span>
+      </h3>
+      <div
+        id="pdf-qa-chat-messages-{{ subject_name.lower()|replace(' ', '_') }}"
+        class="pdf-qa-chat-messages-control"
+      >
+        {# Unique ID #}
+      </div>
+      <div
+        id="pdf-qa-input-area-{{ subject_name.lower()|replace(' ', '_') }}"
+        class="pdf-qa-input-area-control"
+      >
+        {# Unique ID #}
+        <input
+          type="text"
+          id="pdf-qa-input-{{ subject_name.lower()|replace(' ', '_') }}"
+          class="form-control pdf-qa-input-control"
+          placeholder="Ask a question about the PDF..."
+        />
+        {# Unique ID #}
+        <button
+          id="pdf-qa-send-button-{{ subject_name.lower()|replace(' ', '_') }}"
+          class="action-button pdf-qa-send-button-control"
+        >
+          Send
+        </button>
+        {# Unique ID #}
+      </div>
+      <div
+        id="pdf-qa-loading-answer-{{ subject_name.lower()|replace(' ', '_') }}"
+        class="loading pdf-qa-loading-answer-control"
+        style="display: none; margin-top: 10px"
+      >
+        Getting answer...
+      </div>
+      {# Unique ID #}
+    </div>
+  </div>
+
+  <!-- <div class="feature-box pdf-qa-feature-container">
+    {# Added a unique parent class #}
+    <h2><i class="fas fa-file-pdf"></i> Interactive PDF Q&A</h2>
+    <p>
+      Upload a PDF document (e.g., lecture notes, research paper, textbook
+      chapter), and then ask questions based on its content. The AI will answer
+      using only the information within your uploaded PDF.
+    </p>
+
+    <div class="form-group">
+      <label for="pdf-file-input-generic">Choose PDF file:</label> {# Generic ID
+      #}
+      <input
+        type="file"
+        id="pdf-file-input-generic"
+        class="form-control pdf-file-input-control"
+        name="pdf_file_for_qa"
+        accept=".pdf"
+      />
+    </div>
+    <button
+      id="process-pdf-button-generic"
+      class="action-button process-pdf-button-control"
+    >
+      Process PDF
+    </button>
+    {# Generic ID #}
+    <div
+      id="pdf-upload-status-generic"
+      class="loading pdf-upload-status-control"
+      style="display: none"
+    ></div>
+    {# Generic ID #}
+
+    <div
+      id="pdf-qa-section-generic"
+      class="pdf-qa-section-control"
+      style="display: none; margin-top: 20px"
+    >
+      <h3>
+        Ask Questions About:
+        <span
+          id="current-pdf-filename-generic"
+          class="current-pdf-filename-control"
+          style="font-style: normal; color: #2c3e50"
+        ></span>
+      </h3>
+      <div
+        id="pdf-qa-chat-messages-generic"
+        class="pdf-qa-chat-messages-control"
+      >
+        {# Generic ID #}
+      </div>
+      <div id="pdf-qa-input-area-generic" class="pdf-qa-input-area-control">
+        {# Generic ID #}
+        <input
+          type="text"
+          id="pdf-qa-input-generic"
+          class="form-control pdf-qa-input-control"
+          placeholder="Ask a question about the PDF..."
+        />
+        {# Generic ID #}
+        <button
+          id="pdf-qa-send-button-generic"
+          class="action-button pdf-qa-send-button-control"
+        >
+          Send
+        </button>
+        {# Generic ID #}
+      </div>
+      <div
+        id="pdf-qa-loading-answer-generic"
+        class="loading pdf-qa-loading-answer-control"
+        style="display: none; margin-top: 10px"
+      >
+        Getting answer...
+      </div>
+      {# Generic ID #}
+    </div>
+  </div> -->
 
   <!--Adding Analogical Understanding-->
   <div class="feature-box">

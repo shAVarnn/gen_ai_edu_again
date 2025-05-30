@@ -297,14 +297,14 @@ def index():
     """Serves the home page with links to subjects."""
     logging.info("Serving index page.")
     # Define the subjects for which you have templates
-    subjects = ['physics', 'history', 'geography','chemistry','biology','pdf_qa'] # Can add other subjects if needed
+    subjects = ['physics', 'history', 'geography','chemistry','biology'] # Can add other subjects if needed
     return render_template('index.html', subjects=subjects)
 
 @app.route('/<subject>')
 @login_required
 def subject_page(subject):
     """Serves the specific page for a given subject."""
-    valid_subjects = ['physics', 'history', 'geography', 'chemistry', 'biology','pdf_qa'] # All potential subjects
+    valid_subjects = ['physics', 'history', 'geography', 'chemistry', 'biology'] # All potential subjects
     template_name = f'{subject}.html'
     template_path = os.path.join(app.template_folder, template_name)
 
