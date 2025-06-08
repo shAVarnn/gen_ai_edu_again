@@ -57,10 +57,16 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 if not app.config['SECRET_KEY']:
     raise ValueError("SECRET_KEY not found in .env file. Please generate one and add it.")
 
-# Configureing Database
-# Use the URI from .env, defaulting to 'instance/app.db' if not set (for safety)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///app.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Optional: Disable modification tracking
+instance_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance')
+os.makedirs(instance_path, exist_ok=True) # Ensure the instance folder exists
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f'sqlite:///{os.path.join(instance_path, "app.db")}')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# # Configureing Database
+# # Use the URI from .env, defaulting to 'instance/app.db' if not set (for safety)
+# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///app.db')
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Optional: Disable modification tracking
 
 # Initialize Database ORM
 db = SQLAlchemy(app)
@@ -168,7 +174,9 @@ def inject_current_year():
 
 
 # --- Configuration for PDF Q&A ---
-FAISS_INDEX_DIR = os.path.join(app.instance_path, "faiss_indexes")
+# FAISS_INDEX_DIR = os.path.join(app.instance_path, "faiss_indexes")
+persistent_disk_path = os.getenv('RENDER_DISK_PATH', instance_path) # Use 'instance' folder locally
+FAISS_INDEX_DIR = os.path.join(persistent_disk_path, "faiss_indexes")
 if not os.path.exists(FAISS_INDEX_DIR):
     os.makedirs(FAISS_INDEX_DIR)
     logging.info(f"Created FAISS index directory: {FAISS_INDEX_DIR}")
