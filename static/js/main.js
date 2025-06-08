@@ -399,12 +399,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- Event Listener for the "Generate Quiz" Button ---
     generateQuizButton.addEventListener("click", async () => {
-      console.log("Generate Quiz button click event fired!");
+      console.log("[QUIZ] Generate Quiz button click event fired!");
       const sourceText = quizSourceText.value.trim();
       // --- GET values from new inputs ---
       const difficulty = quizDifficultySelect.value;
       const count = parseInt(quizQuestionCountInput.value, 10); // Get integer value
       // --- End Get ---
+
+      // --- NEW: Get the current subject ---
+    const container = document.querySelector('.container[data-subject]');
+    const subject = container ? container.dataset.subject : 'general'; // Default to 'general' if not found
+    console.log(`[QUIZ] Current subject detected as: ${subject}`);
+    // --- END NEW ---
+
 
       // Validate inputs
       if (!sourceText) {
@@ -412,7 +419,7 @@ document.addEventListener("DOMContentLoaded", () => {
           displayQuizError("Please enter a topic or paste some text.");
         return;
       }
-      if (isNaN(count) || count < 3 || count > 100) {
+      if (isNaN(count) || count < 3 || count > 25) {
         // Adjust max if needed, but warn about large numbers
         if (typeof displayQuizError === "function")
           displayQuizError(
@@ -450,6 +457,7 @@ document.addEventListener("DOMContentLoaded", () => {
             text: sourceText,
             difficulty: difficulty, // Add difficulty
             count: count, // Add count
+            subject: subject
           }),
         });
         // --- End Send ---
@@ -2958,152 +2966,204 @@ document.addEventListener("DOMContentLoaded", () => {
   // // === END PDF Q&A Feature Block ===
 
   // === REVISED PDF Q&A Feature (Integrated into subject pages) ===
-    console.log("[PDF_QA_Integrated] Setting up PDF Q&A feature if present...");
+  console.log("[PDF_QA_Integrated] Setting up PDF Q&A feature if present...");
 
-    // Use classes to find the elements within a potential PDF Q&A feature box
-    // This assumes only ONE such feature box will be on any given page.
-    // If you have multiple, you'd need to loop through querySelectorAll and scope listeners.
-    const pdfQaFeatureBox = document.querySelector('.feature-box:has(.pdf-file-input-control)'); // Find the feature box containing PDF Q&A elements
+  // Use classes to find the elements within a potential PDF Q&A feature box
+  // This assumes only ONE such feature box will be on any given page.
+  // If you have multiple, you'd need to loop through querySelectorAll and scope listeners.
+  const pdfQaFeatureBox = document.querySelector(
+    ".feature-box:has(.pdf-file-input-control)"
+  ); // Find the feature box containing PDF Q&A elements
 
-    if (pdfQaFeatureBox) {
-        console.log("[PDF_QA_Integrated] PDF Q&A feature box found on this page. Initializing.");
+  if (pdfQaFeatureBox) {
+    console.log(
+      "[PDF_QA_Integrated] PDF Q&A feature box found on this page. Initializing."
+    );
 
-        const pdfFileInput = pdfQaFeatureBox.querySelector('.pdf-file-input-control');
-        const processPdfButton = pdfQaFeatureBox.querySelector('.process-pdf-button-control');
-        const pdfUploadStatusDiv = pdfQaFeatureBox.querySelector('.pdf-upload-status-control');
-        const pdfQaSectionDiv = pdfQaFeatureBox.querySelector('.pdf-qa-section-control');
-        const currentPdfFilenameSpan = pdfQaFeatureBox.querySelector('.current-pdf-filename-control');
-        const pdfQaChatMessagesDiv = pdfQaFeatureBox.querySelector('.pdf-qa-chat-messages-control');
-        const pdfQaInput = pdfQaFeatureBox.querySelector('.pdf-qa-input-control');
-        const pdfQaSendButton = pdfQaFeatureBox.querySelector('.pdf-qa-send-button-control');
-        const pdfQaLoadingAnswerDiv = pdfQaFeatureBox.querySelector('.pdf-qa-loading-answer-control');
+    const pdfFileInput = pdfQaFeatureBox.querySelector(
+      ".pdf-file-input-control"
+    );
+    const processPdfButton = pdfQaFeatureBox.querySelector(
+      ".process-pdf-button-control"
+    );
+    const pdfUploadStatusDiv = pdfQaFeatureBox.querySelector(
+      ".pdf-upload-status-control"
+    );
+    const pdfQaSectionDiv = pdfQaFeatureBox.querySelector(
+      ".pdf-qa-section-control"
+    );
+    const currentPdfFilenameSpan = pdfQaFeatureBox.querySelector(
+      ".current-pdf-filename-control"
+    );
+    const pdfQaChatMessagesDiv = pdfQaFeatureBox.querySelector(
+      ".pdf-qa-chat-messages-control"
+    );
+    const pdfQaInput = pdfQaFeatureBox.querySelector(".pdf-qa-input-control");
+    const pdfQaSendButton = pdfQaFeatureBox.querySelector(
+      ".pdf-qa-send-button-control"
+    );
+    const pdfQaLoadingAnswerDiv = pdfQaFeatureBox.querySelector(
+      ".pdf-qa-loading-answer-control"
+    );
 
-        // Check if all core elements within the identified feature box are found
-        if (pdfFileInput && processPdfButton && pdfUploadStatusDiv && pdfQaSectionDiv &&
-            currentPdfFilenameSpan && pdfQaChatMessagesDiv && pdfQaInput && pdfQaSendButton && pdfQaLoadingAnswerDiv) {
+    // Check if all core elements within the identified feature box are found
+    if (
+      pdfFileInput &&
+      processPdfButton &&
+      pdfUploadStatusDiv &&
+      pdfQaSectionDiv &&
+      currentPdfFilenameSpan &&
+      pdfQaChatMessagesDiv &&
+      pdfQaInput &&
+      pdfQaSendButton &&
+      pdfQaLoadingAnswerDiv
+    ) {
+      console.log(
+        "[PDF_QA_Integrated] All necessary elements for PDF Q&A found."
+      );
 
-            console.log("[PDF_QA_Integrated] All necessary elements for PDF Q&A found.");
+      processPdfButton.addEventListener("click", async () => {
+        console.log("[PDF_QA_Integrated] Process PDF button clicked.");
+        const file = pdfFileInput.files[0];
 
-            processPdfButton.addEventListener('click', async () => {
-                console.log("[PDF_QA_Integrated] Process PDF button clicked.");
-                const file = pdfFileInput.files[0];
-
-                if (!file) {
-                    pdfUploadStatusDiv.textContent = "Error: Please select a PDF file.";
-                    pdfUploadStatusDiv.style.color = 'red';
-                    pdfUploadStatusDiv.style.display = 'block';
-                    return;
-                }
-                // Client-side type check (backend also validates)
-                const fileName = file.name.toLowerCase();
-                if (!fileName.endsWith('.pdf')) {
-                    pdfUploadStatusDiv.textContent = "Error: Invalid file type. Please upload a PDF.";
-                    pdfUploadStatusDiv.style.color = 'red';
-                    pdfUploadStatusDiv.style.display = 'block';
-                    pdfFileInput.value = ''; // Clear input
-                    return;
-                }
-
-                pdfUploadStatusDiv.textContent = `Processing '${file.name}'... This may take a moment.`;
-                pdfUploadStatusDiv.style.color = '#555';
-                pdfUploadStatusDiv.style.display = 'block';
-                processPdfButton.disabled = true;
-                pdfQaSectionDiv.style.display = 'none';
-                pdfQaChatMessagesDiv.innerHTML = '';
-
-                const formData = new FormData();
-                formData.append('pdf_file', file);
-
-                try {
-                    const response = await fetch('/process-pdf-for-qa', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    console.log("[PDF_QA_Integrated] Response status from /process-pdf-for-qa:", response.status);
-                    const data = await response.json();
-                    processPdfButton.disabled = false;
-
-                    if (response.ok && data.success) {
-                        pdfUploadStatusDiv.textContent = `Successfully processed: ${data.pdf_filename}`;
-                        pdfUploadStatusDiv.style.color = 'green';
-                        currentPdfFilenameSpan.textContent = data.pdf_filename;
-                        pdfQaSectionDiv.style.display = 'block';
-                        pdfQaChatMessagesDiv.innerHTML = '<div class="pdf-qa-message ai">PDF processed! Ask your questions.</div>';
-                        pdfQaInput.focus();
-                    } else {
-                        pdfUploadStatusDiv.textContent = `Error: ${data.error || 'Failed to process PDF. Check server logs.'}`;
-                        pdfUploadStatusDiv.style.color = 'red';
-                        console.error("[PDF_QA_Integrated] Backend error processing PDF:", data.error || 'No error message in JSON');
-                    }
-                } catch (error) {
-                    console.error('[PDF_QA_Integrated] Error processing PDF (fetch or JSON parse error):', error);
-                    pdfUploadStatusDiv.textContent = "Network error or server returned non-JSON. Check console & server logs.";
-                    pdfUploadStatusDiv.style.color = 'red';
-                    processPdfButton.disabled = false;
-                } finally {
-                    pdfFileInput.value = '';
-                }
-            }); // End processPdfButton listener
-
-            // --- Q&A Interaction ---
-            async function askQuestion() {
-                const question = pdfQaInput.value.trim();
-                if (!question) return;
-
-                addPdfQaMessage(question, 'user');
-                pdfQaInput.value = '';
-                pdfQaInput.disabled = true;
-                pdfQaSendButton.disabled = true;
-                pdfQaLoadingAnswerDiv.style.display = 'block';
-
-                try {
-                    const response = await fetch('/ask-pdf-question', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ question: question })
-                    });
-                    console.log("[PDF_QA_Integrated] Response status from /ask-pdf-question:", response.status);
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        addPdfQaMessage(data.reply || "No reply received.", 'ai');
-                    } else {
-                        addPdfQaMessage(data.error || data.reply || "Error getting answer.", 'error');
-                    }
-                } catch (error) {
-                    console.error('[PDF_QA_Integrated] Error asking question:', error);
-                    addPdfQaMessage("Network error. Could not get an answer.", 'error');
-                } finally {
-                    pdfQaInput.disabled = false;
-                    pdfQaSendButton.disabled = false;
-                    pdfQaLoadingAnswerDiv.style.display = 'none';
-                    pdfQaInput.focus();
-                }
-            }
-
-            pdfQaSendButton.addEventListener('click', askQuestion);
-            pdfQaInput.addEventListener('keypress', (event) => {
-                if (event.key === 'Enter') {
-                    askQuestion();
-                }
-            });
-
-            function addPdfQaMessage(text, type) {
-                const messageDiv = document.createElement('div');
-                messageDiv.classList.add('pdf-qa-message', type);
-                messageDiv.textContent = text;
-                pdfQaChatMessagesDiv.appendChild(messageDiv);
-                pdfQaChatMessagesDiv.scrollTop = pdfQaChatMessagesDiv.scrollHeight;
-            }
-        } else {
-            console.warn("[PDF_QA_Integrated] Not all necessary PDF Q&A elements found within the feature box. Feature might not work correctly.");
+        if (!file) {
+          pdfUploadStatusDiv.textContent = "Error: Please select a PDF file.";
+          pdfUploadStatusDiv.style.color = "red";
+          pdfUploadStatusDiv.style.display = "block";
+          return;
         }
+        // Client-side type check (backend also validates)
+        const fileName = file.name.toLowerCase();
+        if (!fileName.endsWith(".pdf")) {
+          pdfUploadStatusDiv.textContent =
+            "Error: Invalid file type. Please upload a PDF.";
+          pdfUploadStatusDiv.style.color = "red";
+          pdfUploadStatusDiv.style.display = "block";
+          pdfFileInput.value = ""; // Clear input
+          return;
+        }
+
+        pdfUploadStatusDiv.textContent = `Processing '${file.name}'... This may take a moment.`;
+        pdfUploadStatusDiv.style.color = "#555";
+        pdfUploadStatusDiv.style.display = "block";
+        processPdfButton.disabled = true;
+        pdfQaSectionDiv.style.display = "none";
+        pdfQaChatMessagesDiv.innerHTML = "";
+
+        const formData = new FormData();
+        formData.append("pdf_file", file);
+
+        try {
+          const response = await fetch("/process-pdf-for-qa", {
+            method: "POST",
+            body: formData,
+          });
+          console.log(
+            "[PDF_QA_Integrated] Response status from /process-pdf-for-qa:",
+            response.status
+          );
+          const data = await response.json();
+          processPdfButton.disabled = false;
+
+          if (response.ok && data.success) {
+            pdfUploadStatusDiv.textContent = `Successfully processed: ${data.pdf_filename}`;
+            pdfUploadStatusDiv.style.color = "green";
+            currentPdfFilenameSpan.textContent = data.pdf_filename;
+            pdfQaSectionDiv.style.display = "block";
+            pdfQaChatMessagesDiv.innerHTML =
+              '<div class="pdf-qa-message ai">PDF processed! Ask your questions.</div>';
+            pdfQaInput.focus();
+          } else {
+            pdfUploadStatusDiv.textContent = `Error: ${
+              data.error || "Failed to process PDF. Check server logs."
+            }`;
+            pdfUploadStatusDiv.style.color = "red";
+            console.error(
+              "[PDF_QA_Integrated] Backend error processing PDF:",
+              data.error || "No error message in JSON"
+            );
+          }
+        } catch (error) {
+          console.error(
+            "[PDF_QA_Integrated] Error processing PDF (fetch or JSON parse error):",
+            error
+          );
+          pdfUploadStatusDiv.textContent =
+            "Network error or server returned non-JSON. Check console & server logs.";
+          pdfUploadStatusDiv.style.color = "red";
+          processPdfButton.disabled = false;
+        } finally {
+          pdfFileInput.value = "";
+        }
+      }); // End processPdfButton listener
+
+      // --- Q&A Interaction ---
+      async function askQuestion() {
+        const question = pdfQaInput.value.trim();
+        if (!question) return;
+
+        addPdfQaMessage(question, "user");
+        pdfQaInput.value = "";
+        pdfQaInput.disabled = true;
+        pdfQaSendButton.disabled = true;
+        pdfQaLoadingAnswerDiv.style.display = "block";
+
+        try {
+          const response = await fetch("/ask-pdf-question", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: question }),
+          });
+          console.log(
+            "[PDF_QA_Integrated] Response status from /ask-pdf-question:",
+            response.status
+          );
+          const data = await response.json();
+
+          if (response.ok) {
+            addPdfQaMessage(data.reply || "No reply received.", "ai");
+          } else {
+            addPdfQaMessage(
+              data.error || data.reply || "Error getting answer.",
+              "error"
+            );
+          }
+        } catch (error) {
+          console.error("[PDF_QA_Integrated] Error asking question:", error);
+          addPdfQaMessage("Network error. Could not get an answer.", "error");
+        } finally {
+          pdfQaInput.disabled = false;
+          pdfQaSendButton.disabled = false;
+          pdfQaLoadingAnswerDiv.style.display = "none";
+          pdfQaInput.focus();
+        }
+      }
+
+      pdfQaSendButton.addEventListener("click", askQuestion);
+      pdfQaInput.addEventListener("keypress", (event) => {
+        if (event.key === "Enter") {
+          askQuestion();
+        }
+      });
+
+      function addPdfQaMessage(text, type) {
+        const messageDiv = document.createElement("div");
+        messageDiv.classList.add("pdf-qa-message", type);
+        messageDiv.textContent = text;
+        pdfQaChatMessagesDiv.appendChild(messageDiv);
+        pdfQaChatMessagesDiv.scrollTop = pdfQaChatMessagesDiv.scrollHeight;
+      }
     } else {
-        console.log("[PDF_QA_Integrated] PDF Q&A feature box not found on this page. Feature not initialized.");
+      console.warn(
+        "[PDF_QA_Integrated] Not all necessary PDF Q&A elements found within the feature box. Feature might not work correctly."
+      );
     }
-    // === END REVISED PDF Q&A Feature ===
-
-
+  } else {
+    console.log(
+      "[PDF_QA_Integrated] PDF Q&A feature box not found on this page. Feature not initialized."
+    );
+  }
+  // === END REVISED PDF Q&A Feature ===
 
   //LETS US THINK ABOUT IT TOMMORROW
   // // === REVISED PDF Q&A Feature (Generic for any subject page) ===

@@ -27,6 +27,9 @@ from langchain.chains.question_answering import load_qa_chain
 import hashlib # For generating unique IDs for PDFs
 import shutil # For cleaning up old indexes
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 
 
 # --- Basic Setup ---
@@ -61,6 +64,17 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Optional: Disable modific
 
 # Initialize Database ORM
 db = SQLAlchemy(app)
+
+
+# === NEW: Initialize Flask-Limiter ===
+# The key_func determines what identifies a "user" (e.g., IP address).
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "60 per hour"], # General limits for all routes
+    storage_uri="memory://", # Simple in-memory storage. For production, consider Redis.
+)
+# === END NEW ---
 
 # Initialize Login Manager
 login_manager = LoginManager(app)
@@ -321,6 +335,7 @@ def subject_page(subject):
 # --- API Endpoints for AI Features ---
 
 @app.route('/generate-summary', methods=['POST'])
+@limiter.limit("10 per minute")
 def generate_summary():
     """
     Generates a summary from either pasted text (JSON) or an uploaded file (FormData).
@@ -512,8 +527,9 @@ def generate_visual_description():
 
 # === MODIFY the /generate-quiz route AGAIN ===
 @app.route('/generate-quiz', methods=['POST'])
+@limiter.limit("5 per minute")
 def generate_quiz():
-    """Generates a multiple-choice quiz based on input text/topic, difficulty, and count."""
+    """Generates a multiple-choice quiz based on input text/topic, difficulty, and count but first checking if the input text is relevant to given subject."""
     logging.info("Received request for /generate-quiz")
     if not request.is_json:
         logging.error("Request is not JSON for quiz")
@@ -523,9 +539,11 @@ def generate_quiz():
     source_text = data.get('text')
     # --- GET new parameters ---
     difficulty = data.get('difficulty', 'easy') # Default to easy
+    subject = data.get('subject','general topics')
+
     try:
         # Ensure count is within reasonable bounds (e.g., 3 to 50) to prevent abuse/errors
-        count = min(max(int(data.get('count', 5)), 3), 50) # Default 5, min 3, max 50
+        count = min(max(int(data.get('count', 5)), 3), 30) # Default 5, min 3, max 50
     except (ValueError, TypeError):
          logging.warning("Invalid count received, defaulting to 5.")
          count = 5
@@ -548,10 +566,16 @@ def generate_quiz():
 
         # --- MODIFY Prompt ---
         prompt = f"""
-        Based on the following text or topic, generate exactly {count} multiple-choice quiz questions of {difficulty_description} difficulty.
-        For each question, provide 4 options (labeled A, B, C, D). Indicate the correct answer clearly.
-        Return the output ONLY as a single valid JSON list (array) of objects. Each object must have these exact keys: "question" (string), "options" (list of 4 strings), and "correct_answer" (string, the single letter 'A', 'B', 'C', or 'D').
-        Do not include any explanatory text, markdown formatting, or anything else before or after the JSON list.
+        You are a strict subject-matter expert creating a quiz.
+
+        **Step 1: Analyze Relevance.** First, determine if the following "Source Text/Topic" is relevant to the subject of **{subject.capitalize()}**.
+
+        **Step 2: Generate Output.**
+        * **If the text is NOT relevant** to {subject.capitalize()}, your ONLY output MUST be this exact JSON object:
+            `{{"error": "The provided text does not seem to be related to {subject.capitalize()}. Please provide relevant text to generate a quiz."}}`
+        * **If the text IS relevant**, then proceed to generate exactly {count} multiple-choice quiz questions of {difficulty_description} difficulty. For each question, provide 4 options (A, B, C, D) and the correct answer letter. Return the output ONLY as a single valid JSON list of objects, like this example: `[{{"question": "...", "options": [...], "correct_answer": "..."}}, ...]`.
+
+        Do not add any explanatory text before or after your JSON output in either case.
 
         Source Text/Topic:
         ---
@@ -561,6 +585,8 @@ def generate_quiz():
         Generate the JSON quiz now:
         """
         # --- End Modify Prompt ---
+
+        
 
         generation_config = genai.types.GenerationConfig(
             response_mime_type="application/json"
@@ -629,6 +655,7 @@ def generate_quiz():
 
 
 @app.route('/generate-battle-flow', methods=['POST'])
+@limiter.limit("5 per minute")
 def generate_battle_flow():
     """Generates a text flow of events leading up to a selected battle."""
     logging.info("Received request for /generate-battle-flow")
@@ -1713,4 +1740,5 @@ if __name__ == '__main__':
     # Set debug=True for development (auto-reloads, detailed errors)
     # Set debug=False for production
     # host='0.0.0.0' makes it accessible on your local network
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    #app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False)

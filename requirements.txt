@@ -16,3 +16,6 @@ faiss-cpu>=1.7.0  # For vector store (CPU version)
 # pypdf is already there for text extraction
 # google-generativeai is already there
 # python-dotenv is already there
+
+gunicorn
+Flask-Limiter
